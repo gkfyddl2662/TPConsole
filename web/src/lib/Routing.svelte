@@ -37,23 +37,30 @@
   const pairRole = (k: number) => (k >= 2 ? `pb${k - 2}` : k === 0 ? 'analog' : 'mobileIn')
 
   const hideServices = $derived(settings?.hideServiceSessions ?? false)
-  // Apps with Windows audio open but silent right now (dimmed when shown); they reappear when they play.
-  const hideIdle = $derived(settings?.hideIdleSessions ?? true)
-  /** One node per app per device it plays into. Several sessions of one app on one device (Chrome's
-   *  processes) are one node; the same app on two devices (Discord: sounds on the default device, voice
-   *  on the communications device) is two, each saying why it plays there (see appReason). */
-  type AppView = WinSession & { members: WinSession[] }
+  // Apps with Windows audio open but silent right now: shown dimmed (like the volume mixer lists them), or hidden.
+  const hideIdle = $derived(settings?.hideSilentApps ?? false)
+  /** One node per app process, like the Windows volume mixer (Discord's two audio processes are two
+   *  entries there too). A process keeps a session on every device it ever opened; the node sits where it
+   *  plays now, or — when silent — on its per-app device, else the Windows default. Wires go to every
+   *  device it is playing into right now (a silent app gets one dashed wire to where it sits). */
+  type AppView = WinSession & { members: WinSession[]; playingOn: string[] }
   const appViews = $derived.by((): AppView[] => {
+    const defaultOut = endpoints.find(e => e.flow === 'render' && e.isDefault)?.id
     const groups = new Map<string, WinSession[]>()
     for (const s of app.windows.sessions) {
       if (s.flow === 'capture' || !(s.active || s.pid !== 0) || (hideServices && s.service)) continue
-      const k = `${s.system ? 'system' : (s.exe ?? s.name).toLowerCase()}|${s.endpoint}`
+      const k = s.system ? 'system' : `pid${s.pid}`
       const g = groups.get(k)
       if (g) g.push(s); else groups.set(k, [s])
     }
     return [...groups].map(([k, members]) => {
-      const rep = members.find(m => m.active) ?? members[0]
-      return { ...rep, key: `g:${k}`, pinned: members.find(m => m.pinned)?.pinned ?? null, active: members.some(m => m.active), members }
+      const pinned = members.find(m => m.pinned)?.pinned ?? null
+      const playingOn = [...new Set(members.filter(m => m.active).map(m => m.endpoint))]
+      const wanted = pinned ?? defaultOut
+      const home = playingOn.includes(wanted ?? '') ? wanted! : playingOn[0]
+        ?? (members.some(m => m.endpoint === wanted) ? wanted! : members[0].endpoint)
+      const rep = members.find(m => m.endpoint === home && m.active) ?? members.find(m => m.endpoint === home) ?? members[0]
+      return { ...rep, key: `g:${k}`, endpoint: home, pinned, active: playingOn.length > 0, members, playingOn }
     }).filter(v => !(hideIdle && !v.active))
   })
   /** Why an app plays on this device, from what Windows reports (it does not say which role a stream
@@ -314,7 +321,7 @@
 
   const edges = $derived.by(() => {
     const out: Edge[] = []
-    // Each app node's wire to the device it plays into.
+    // App wires: one per device the app plays into now; a silent app's dashed wire to where it sits.
     const endpointNode = (id: string) => {
       const p = pairs.find(x => x.k >= 2 && x.ep?.id === id)
       if (p) return pairNode(p.k)
@@ -323,9 +330,12 @@
       return d ? `vplay:${d.id}` : undefined
     }
     for (const v of appViews) {
-      const to = endpointNode(v.endpoint)
-      if (to) out.push({ id: `a:${v.key}`, from: `app:${v.key}`, to, color: 'var(--text-3)', width: 1.25,
-        activity: () => appPeak(v), dashed: !v.active })
+      for (const ep of v.active ? v.playingOn : [v.endpoint]) {
+        const to = endpointNode(ep)
+        const on = v.members.filter(m => m.endpoint === ep)
+        if (to) out.push({ id: `a:${v.key}:${ep}`, from: `app:${v.key}`, to, color: 'var(--text-3)', width: 1.25,
+          activity: () => Math.max(0, ...on.map(m => peakPos(app.winPeaks[m.key]))), dashed: !v.active })
+      }
     }
     for (const p of pairs) {
       for (const h of p.asio)

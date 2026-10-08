@@ -91,8 +91,8 @@ export interface AppSettings {
   autoStoreOnDevice: boolean
   hotkeys: Hotkey[]
   hideServiceSessions?: boolean
-  /** Hide apps that have audio open but are silent (default on). */
-  hideIdleSessions?: boolean
+  /** Hide apps that have audio open but are silent (default off: the list matches the volume mixer). */
+  hideSilentApps?: boolean
   presetRules?: PresetRule[]
   /** Send row order per hardware mix ("0".."3" -> row keys). */
   mixOrder?: Record<string, string[]>

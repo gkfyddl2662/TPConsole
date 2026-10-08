@@ -221,7 +221,7 @@ const ko: Record<string, string> = {
   'Chosen in the app’s own settings, not by Windows': 'Windows가 아니라 앱 자체 설정에서 고른 장치',
   'Click to choose where it plays': '눌러서 출력 장치 선택',
   'Hide apps that are not playing': '재생 중이 아닌 앱 숨기기',
-  'Apps that have sound open but are silent right now (shown dimmed otherwise). They appear as soon as they play.': '소리를 열어 두었지만 지금은 조용한 앱입니다(숨기지 않으면 흐리게 보임). 소리를 내면 바로 나타납니다.',
+  'Apps that have sound open but are silent right now (shown dimmed otherwise). They appear as soon as they play.': '소리를 열어 두었지만 지금은 조용한 앱입니다(숨기지 않으면 Windows 볼륨 믹서처럼 목록에 흐리게 보임). 소리를 내면 바로 나타납니다.',
   'TOPPING Control Center is running': 'TOPPING Control Center가 실행 중입니다',
   'Both apps would change the E2x2 at the same time, so TPConsole leaves it alone while Control Center is open. Close Control Center to continue — your setup is sent back right away.': '두 프로그램이 동시에 E2x2를 바꾸면 설정이 꼬이기 때문에, Control Center가 켜져 있는 동안 TPConsole은 장치를 건드리지 않습니다. Control Center를 종료하면 바로 내 설정으로 돌아갑니다.',
   'Control Center also starts with Windows. Turn that off in Task Manager → Startup apps.': 'Control Center는 Windows 시작 시 함께 켜집니다. 작업 관리자 → 시작 앱에서 끌 수 있습니다.',

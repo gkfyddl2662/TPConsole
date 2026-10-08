@@ -72,6 +72,10 @@ const MOCK_WINDOWS: WinTopology = {
     // Discord's voice on the communications default device: a second Discord node there, marked "Comm".
     { key: 's7', endpoint: 'pb34', pid: 7, name: 'Discord', exe: 'Discord', active: true, icon: null },
     { key: 's8', endpoint: 'pb34', pid: 8, name: 'Google Chrome', exe: 'chrome', active: true, icon: null, pinned: 'pb34' },
+    // Old idle sessions a process keeps on devices it once used: must not become extra Discord nodes.
+    { key: 's9', endpoint: 'pb56', pid: 2, name: 'Discord', exe: 'Discord', active: false, icon: null },
+    { key: 's10', endpoint: 'hdmi', pid: 2, name: 'Discord', exe: 'Discord', active: false, icon: null },
+    { key: 's11', endpoint: 'pb12', pid: 7, name: 'Discord', exe: 'Discord', active: false, icon: null },
     { key: 's5', endpoint: 'hdmi', pid: 5, name: 'Steam', exe: 'steamwebhelper', active: false, icon: null },
     { key: 'r1', endpoint: 'lb12', flow: 'capture', pid: 2, name: 'Discord', exe: 'Discord', active: true, icon: null },
     { key: 'r2', endpoint: 'an12', flow: 'capture', pid: 6, name: 'OBS Studio', exe: 'obs64', active: true, icon: null },
