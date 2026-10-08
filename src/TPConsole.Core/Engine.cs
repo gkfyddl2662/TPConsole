@@ -40,6 +40,8 @@ public sealed class AppSettings
     /// <summary>Keep the device's own memory (used without a PC) in step with the app, automatically.</summary>
     public bool AutoStoreOnDevice { get; set; } = true;
     public bool HideServiceSessions { get; set; }
+    /// <summary>Hide apps that have Windows audio open but are silent right now.</summary>
+    public bool HideIdleSessions { get; set; } = true;
     public List<PresetRule> PresetRules { get; set; } = [];
     /// <summary>Order of the send rows inside each mix ("0".."3" -> source keys).</summary>
     public Dictionary<string, List<string>> MixOrder { get; set; } = [];

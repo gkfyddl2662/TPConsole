@@ -178,6 +178,8 @@
     {#if app.status.controlCenterAutostart}
       <p class="warnline">{t('TOPPING Control Center also starts with Windows, and TPConsole waits while it runs — turn it off in Task Manager → Startup apps.')}</p>
     {/if}
+    {@render boolRow('hideIdleSessions', true, t('Hide apps that are not playing'),
+      t('Apps that have sound open but are silent right now (shown dimmed otherwise). They appear as soon as they play.'))}
     {@render boolRow('hideServiceSessions', false, t('Hide Windows service sessions'),
       t('Windows components (svchost) that open audio, such as the Bluetooth or speech services.'))}
     {@render boolRow('miniOnTop', true, t('Mini mode stays on top'))}

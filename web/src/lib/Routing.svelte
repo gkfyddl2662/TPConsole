@@ -37,10 +37,12 @@
   const pairRole = (k: number) => (k >= 2 ? `pb${k - 2}` : k === 0 ? 'analog' : 'mobileIn')
 
   const hideServices = $derived(settings?.hideServiceSessions ?? false)
+  // Apps with Windows audio open but silent right now (dimmed when shown); they reappear when they play.
+  const hideIdle = $derived(settings?.hideIdleSessions ?? true)
   const renderSessions = (ep: WinEndpoint | undefined) =>
     ep
       ? app.windows.sessions
-          .filter(s => s.endpoint === ep.id && s.flow !== 'capture' && (s.active || s.pid !== 0) && !(hideServices && s.service))
+          .filter(s => s.endpoint === ep.id && s.flow !== 'capture' && (s.active || s.pid !== 0) && !(hideServices && s.service) && !(hideIdle && !s.active))
           .sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name))
       : []
 
@@ -76,7 +78,7 @@
     const ep = byRole(role)
     if (!ep) return []
     return app.windows.sessions
-      .filter(s => s.flow === 'capture' && s.endpoint === ep.id && !s.system && s.pid !== 0 && !(hideServices && s.service))
+      .filter(s => s.flow === 'capture' && s.endpoint === ep.id && !s.system && s.pid !== 0 && !(hideServices && s.service) && !(hideIdle && !s.active))
       .sort((a, b) => Number(!!a.service) - Number(!!b.service) || Number(b.active) - Number(a.active) || a.name.localeCompare(b.name))
   }
 
