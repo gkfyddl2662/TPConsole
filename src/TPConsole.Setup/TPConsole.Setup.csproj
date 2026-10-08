@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Double-click installer. .NET Framework 4.8 ships with Windows 10/11, so this small exe runs anywhere;
+    the app itself (self-contained) travels inside as an embedded zip. Built twice by tools\package.ps1:
+    without Payload it is the small Uninstall.exe that goes into the app folder; with Payload it is the setup.
+      dotnet build -c Release -p:Payload=<path to app zip> -p:Version=<version>
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\TPConsole.App\app.ico</ApplicationIcon>
+    <AssemblyName>TPConsole-Setup</AssemblyName>
+    <Product>TPConsole</Product>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="Microsoft.CSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Large header icon in the setup window. -->
+    <EmbeddedResource Include="..\TPConsole.App\app.ico" LogicalName="app.ico" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Payload)' != ''">
+    <EmbeddedResource Include="$(Payload)" LogicalName="app.zip" />
+  </ItemGroup>
+
+</Project>

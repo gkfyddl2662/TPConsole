@@ -1,0 +1,67 @@
+# Every code change on main becomes a release: TPConsole-Setup-X.Y.Z.exe on GitHub Releases, which the
+# installed app picks up as an automatic update (src/TPConsole.App/Updater.cs).
+# Version: the latest release tag + 1 (patch), or the csproj <Version> when that is higher
+# (raise it there for a minor/major step). Docs-only changes don't release.
+name: release
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'web/**', 'tests/**', 'tools/package.ps1', '.github/workflows/release.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Next version
+        id: version
+        shell: pwsh
+        run: |
+          $csproj = [version](([xml](Get-Content src/TPConsole.App/TPConsole.App.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1)
+          $last = gh release view --json tagName --jq .tagName 2>$null
+          if ($LASTEXITCODE -ne 0 -or -not $last) { $last = ''; $next = $csproj }
+          else {
+            $l = [version]$last.TrimStart('v')
+            $bump = [version]"$($l.Major).$($l.Minor).$($l.Build + 1)"
+            $next = if ($csproj -gt $bump) { $csproj } else { $bump }
+          }
+          "version=$($next.ToString(3))" >> $env:GITHUB_OUTPUT
+          "last=$last" >> $env:GITHUB_OUTPUT
+          $global:LASTEXITCODE = 0
+
+      - name: Build installer
+        shell: pwsh
+        run: ./tools/package.ps1 -Version ${{ steps.version.outputs.version }}
+
+      - name: Publish release
+        shell: pwsh
+        run: |
+          $v = '${{ steps.version.outputs.version }}'
+          $last = '${{ steps.version.outputs.last }}'
+          $log = if ($last) { git log --no-merges --format='- %s' "$last..HEAD" } else { '- First TPConsole release' }
+          @("## Changes", "", $log) | Out-File notes.md -Encoding utf8
+          gh release create "v$v" "dist/TPConsole-Setup-$v.exe" --title "TPConsole $v" --notes-file notes.md --target $env:GITHUB_SHA

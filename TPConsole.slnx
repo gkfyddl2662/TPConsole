@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TPConsole.App/TPConsole.App.csproj" />
+    <Project Path="src/TPConsole.Cli/TPConsole.Cli.csproj" />
+    <Project Path="src/TPConsole.Core/TPConsole.Core.csproj" />
+    <Project Path="src/TPConsole.Setup/TPConsole.Setup.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TPConsole.Tests/TPConsole.Tests.csproj" />
+  </Folder>
+</Solution>

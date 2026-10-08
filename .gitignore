@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+# Not product code: analysis notes, captures, test fixtures from Control Center, dev instructions.
+# private/ is its own local git repo.
+private/
+CLAUDE.md
+.claude/
+# Third-party driver files never go into this public repo
+*.sys
+bin/
+obj/
+node_modules/
+src/TPConsole.App/wwwroot/
+dist/
