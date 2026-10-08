@@ -23,7 +23,8 @@ public sealed class E2x2Device : IDisposable
 
     public static E2x2Device Open()
     {
-        var path = Native.EnumerateHidPaths().FirstOrDefault(p =>
+        Native.HidD_GetHidGuid(out var hid);
+        var path = Native.EnumerateInterfacePaths(hid).FirstOrDefault(p =>
                        p.Contains(HardwareId, StringComparison.OrdinalIgnoreCase) && p.Contains(Interface, StringComparison.OrdinalIgnoreCase))
                    ?? throw new InvalidOperationException("E2x2 OTG HID interface not found");
         var h = Native.CreateFile(path, Native.GENERIC_READ | Native.GENERIC_WRITE,
@@ -66,7 +67,7 @@ static partial class Native
     public static extern SafeFileHandle CreateFile(string name, uint access, uint share, nint security, uint disposition, uint flags, nint template);
 
     [DllImport("hid")]
-    static extern void HidD_GetHidGuid(out Guid guid);
+    public static extern void HidD_GetHidGuid(out Guid guid);
 
     [DllImport("hid")]
     public static extern bool HidD_SetNumInputBuffers(SafeFileHandle h, uint count);
@@ -90,12 +91,6 @@ static partial class Native
         public Guid ClassGuid;
         public int Flags;
         public nint Reserved;
-    }
-
-    public static List<string> EnumerateHidPaths()
-    {
-        HidD_GetHidGuid(out var guid);
-        return EnumerateInterfacePaths(guid);
     }
 
     public static List<string> EnumerateInterfacePaths(Guid guid)

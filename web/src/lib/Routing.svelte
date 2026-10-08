@@ -31,7 +31,7 @@
   const mixer = $derived(app.profile!.mixer)
   const settings = $derived(app.profile!.settings)
   const sync = $derived(settings?.syncWindowsNames ?? true)
-  const rows = $derived(sourceRows(mixer, nameOf))
+  const rows = $derived(sourceRows(mixer))
   const endpoints = $derived(app.windows.endpoints)
   const byRole = (role: string | undefined) => (role ? endpoints.find(e => e.e2x2 === role) : undefined)
   const pairRole = (k: number) => (k >= 2 ? `pb${k - 2}` : k === 0 ? 'analog' : 'mobileIn')
@@ -240,8 +240,7 @@
     return 0
   }
   // Driver recording meters: Analog, Mobile IN, Loopback 1/2, 3/4, 5/6.
-  const REC_METER: Record<string, number> = { analog: 0, mobileIn: 1, loopback12: 2, loopback34: 3, loopback56: 4 }
-  const recLevel = (role: string) => peakPos(app.winPeaks[`drv:rec${REC_METER[role]}`])
+  const recLevel = (role: string) => peakPos(app.winPeaks[`drv:rec${LB.indexOf(role) + 2}`])
   /** Level a send carries into its mix (0..1 meter scale): source level + send level + pan law.
    *  The device does not meter sends; this is the same arithmetic its mixer applies. */
   function sendLevel(r: SourceRow, ch: { levelDb: number | null; pan: number }) {
@@ -627,7 +626,7 @@
     if (edge.vroute) {
       toggleRoute(edge.vroute.from, edge.vroute.to)
     } else if (edge.send) {
-      set(...edge.send.row.channels.map(c => ({ path: `mixer.mixes.${edge.send!.mix}.channel.${c}.mute`, value: true })))
+      setSend(edge.send.mix, edge.send.row, 'mute', true)
     } else if (edge.output) {
       muteOut(edge.output, true)
     } else if (edge.from.startsWith('app:')) {
@@ -667,13 +666,10 @@
   /** Windows items for a node backed by a Windows device: default device choices. */
   function windowsItems(ep: WinEndpoint | undefined): Item[] {
     if (!ep) return []
-    const items: Item[] = [{ separator: true }, { section: `Windows · ${ep.name}` }]
     const kind = t(ep.flow === 'render' ? 'playback' : 'recording')
-    items.push(
+    return [{ separator: true }, { section: `Windows · ${ep.name}` },
       { label: t('Default {kind} device', { kind }), checked: ep.isDefault, action: () => setDefaultDevice(ep.id, false) },
-      { label: t('Default communications device'), checked: ep.isDefaultComm, action: () => setDefaultDevice(ep.id, true) },
-    )
-    return items
+      { label: t('Default communications device'), checked: ep.isDefaultComm, action: () => setDefaultDevice(ep.id, true) }]
   }
 
 
@@ -685,7 +681,7 @@
       MIXES.forEach((_, m) => items.push({
         label: mixName(m), checked: sendOn(m, row),
         action: () => sendOn(m, row)
-          ? set(...row.channels.map(c => ({ path: `mixer.mixes.${m}.channel.${c}.mute`, value: true })))
+          ? setSend(m, row, 'mute', true)
           : connect(`src:${row.key}`, `mix:${m}`),
       }))
     }
@@ -817,8 +813,6 @@
 
   /** Hover text: what a node does, then the pointer to its right-click menu. */
   const more = (what: string) => () => `${t(what)} · ${t('Right-click for more')}`
-  const hintEdge = (e: Edge) =>
-    t(e.send || e.output ? 'Click: adjust level · Right-click: disconnect' : 'Right-click: disconnect')
 </script>
 
 <div class="wrap">
@@ -836,7 +830,7 @@
           <path class="base" d={paths[e.id]} stroke-width={e.width} />
           <path class="glow" d={paths[e.id]} stroke-width={e.width} style:opacity={a} />
           <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-          <path class="hit" d={paths[e.id]} onclick={ev => openEdge(ev, e)} oncontextmenu={ev => disconnect(ev, e)} use:hint={() => hintEdge(e)} />
+          <path class="hit" d={paths[e.id]} onclick={ev => openEdge(ev, e)} oncontextmenu={ev => disconnect(ev, e)} use:hint={() => t(e.send || e.output ? 'Click: adjust level · Right-click: disconnect' : 'Right-click: disconnect')} />
         </g>
       {/if}
     {/each}

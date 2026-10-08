@@ -4,8 +4,8 @@
   import { clamp } from './scale'
 
   // Linear pan 0 (left) .. 100 (right). Drawn as a thin bar growing from the centre.
-  interface Props { value: number; dim?: boolean; onchange: (v: number) => void }
-  let { value, dim = false, onchange }: Props = $props()
+  interface Props { value: number; onchange: (v: number) => void }
+  let { value, onchange }: Props = $props()
 
   let el: HTMLDivElement
   let dragging = false
@@ -19,7 +19,7 @@
   }
 </script>
 
-<div class="pan" class:dim use:hint={() => t('Pan · double-click: centre')}>
+<div class="pan" use:hint={() => t('Pan · double-click: centre')}>
   <span class="side">L</span>
   <div
     class="track"
@@ -59,5 +59,4 @@
     background: var(--text-2);
   }
   .val { width: 30px; text-align: right; font-size: 10px; color: var(--text-3); }
-  .dim .dot { background: var(--text-4); }
 </style>

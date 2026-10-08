@@ -62,32 +62,24 @@ public static class ControlCenterImport
         var mix = new Mix();
         for (int k = 0; k < 6; k++)
         {
-            var p = Group(n, $"MixParmeter_{k + 1}");
-            mix.Link[k] = Bool(p, "LinkEnable");
+            // Mixer entries are stored flat ("MixParmeter_1.LinkEnable").
+            var p = $"MixParmeter_{k + 1}.";
+            mix.Link[k] = Bool(n, p + "LinkEnable");
             foreach (var (side, idx) in new[] { ("L", 2 * k), ("R", 2 * k + 1) })
             {
                 // CC's Mix_channel is the share sent to the channel's own side (100 = hard to its side).
-                int share = Int(p, $"Mix_channel_{side}");
+                int share = Int(n, $"{p}Mix_channel_{side}");
                 mix.Channel[idx] = new MixChannel
                 {
-                    LevelDb = Db(p, $"Mix_volume_{side}"),
+                    LevelDb = Db(n, $"{p}Mix_volume_{side}"),
                     Pan = side == "L" ? 100 - share : share,
-                    Mute = Bool(p, $"MUTEEnable_{side}"),
-                    Solo = Bool(p, $"SOLOEnable_{side}"),
-                    Invert = Bool(p, $"ANTIEnable_{side}"),
+                    Mute = Bool(n, $"{p}MUTEEnable_{side}"),
+                    Solo = Bool(n, $"{p}SOLOEnable_{side}"),
+                    Invert = Bool(n, $"{p}ANTIEnable_{side}"),
                 };
             }
         }
         return mix;
-    }
-
-    // Mixer entries are stored flat ("MixParmeter_1.LinkEnable"); gather one group into an object.
-    static JsonObject Group(JsonNode n, string prefix)
-    {
-        var o = new JsonObject();
-        foreach (var (k, v) in n.AsObject())
-            if (k.StartsWith(prefix + ".")) o[k[(prefix.Length + 1)..]] = v?.DeepClone();
-        return o;
     }
 
     static bool Bool(JsonNode n, string key) => n[key]?.GetValue<bool>() ?? false;

@@ -111,9 +111,9 @@ public sealed class Mixer
             for (int i = 0; i < Mix.Channels; i++)
             {
                 var c = mix.Channel[i];
-                int state = c.Mute || (anySolo && !c.Solo) ? 0 : c.Invert ? -1 : 1;
-                int toL = state == 0 ? 0 : Levels.MixerSend(c.LevelDb, 100 - c.Pan, c.Invert);
-                int toR = state == 0 ? 0 : Levels.MixerSend(c.LevelDb, c.Pan, c.Invert);
+                bool silent = c.Mute || (anySolo && !c.Solo);
+                int toL = silent ? 0 : Levels.MixerSend(c.LevelDb, 100 - c.Pan, c.Invert);
+                int toR = silent ? 0 : Levels.MixerSend(c.LevelDb, c.Pan, c.Invert);
                 byte sub = (byte)(i + 1);
                 yield return F(busL, sub, toL);
                 yield return F(busR, sub, toR);

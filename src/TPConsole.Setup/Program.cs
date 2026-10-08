@@ -6,13 +6,11 @@
 // installs, logs to %APPDATA%\TPConsole\update.log and starts the app again.
 using System;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
@@ -136,7 +134,7 @@ static class Program
             if (!Directory.Exists(InstallDir) && Directory.Exists(old)) Directory.Move(old, InstallDir);
             throw;
         }
-        try { if (Directory.Exists(old)) Directory.Delete(old, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+        TryDelete(old);
 
         progress.Report((96, "바로가기 만드는 중…"));
         var exe = Path.Combine(InstallDir, AppExe);
@@ -180,7 +178,7 @@ static class Program
             if (File.Exists(old)) File.Delete(old);
         }
         var dir = Path.Combine(Path.GetDirectoryName(InstallDir)!, Legacy);
-        try { if (Directory.Exists(dir)) Directory.Delete(dir, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+        TryDelete(dir);
         Registry.LocalMachine.DeleteSubKeyTree(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" + Legacy, false);
     }
 

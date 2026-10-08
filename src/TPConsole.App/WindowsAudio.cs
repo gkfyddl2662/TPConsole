@@ -4,8 +4,6 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json.Nodes;
-using System.Windows.Interop;
-using System.Windows.Media.Imaging;
 using NAudio.CoreAudioApi;
 using NAudio.CoreAudioApi.Interfaces;
 using TPConsole.Core;
@@ -661,18 +659,15 @@ public sealed class WindowsAudio : IDisposable
     /// <summary>Exe icon as a PNG data URL, cached per path.</summary>
     string? Icon(string path) => _icons.GetOrAdd(path, p =>
     {
-        var info = new SHFILEINFO();
-        if (SHGetFileInfo(p, 0, ref info, Marshal.SizeOf<SHFILEINFO>(), 0x100 /* SHGFI_ICON */) == 0 || info.hIcon == 0) return null;
         try
         {
-            var src = Imaging.CreateBitmapSourceFromHIcon(info.hIcon, System.Windows.Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
-            var enc = new PngBitmapEncoder();
-            enc.Frames.Add(BitmapFrame.Create(src));
+            using var icon = System.Drawing.Icon.ExtractAssociatedIcon(p);
+            using var bmp = icon!.ToBitmap();
             using var ms = new MemoryStream();
-            enc.Save(ms);
+            bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
             return "data:image/png;base64," + Convert.ToBase64String(ms.ToArray());
         }
-        finally { DestroyIcon(info.hIcon); }
+        catch (Exception e) when (e is ArgumentException or FileNotFoundException) { return null; }
     });
 
     /// <summary>
@@ -720,19 +715,6 @@ public sealed class WindowsAudio : IDisposable
         _meterDriver?.Dispose();
     }
 
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    struct SHFILEINFO
-    {
-        public nint hIcon;
-        public int iIcon;
-        public uint dwAttributes;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] public string szDisplayName;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)] public string szTypeName;
-    }
-
-    [DllImport("shell32", CharSet = CharSet.Unicode)]
-    static extern nint SHGetFileInfo(string path, uint attrs, ref SHFILEINFO info, int size, uint flags);
-    [DllImport("user32")] static extern bool DestroyIcon(nint h);
     [DllImport("kernel32")] static extern nint OpenProcess(uint access, bool inherit, uint pid);
     [DllImport("ntdll")] static extern int NtQueryInformationProcess(nint h, int infoClass, nint info, int length, ref int returned);
     [StructLayout(LayoutKind.Sequential)] struct UnicodeString { public ushort Length, MaximumLength; public nint Buffer; }
@@ -740,20 +722,15 @@ public sealed class WindowsAudio : IDisposable
     static bool IsWebView2(string? path) => path?.EndsWith("msedgewebview2.exe", StringComparison.OrdinalIgnoreCase) ?? false;
 
     /// <summary>Parent process id (ProcessBasicInformation.InheritedFromUniqueProcessId), or 0.</summary>
-    static uint ParentPid(uint pid)
+    static unsafe uint ParentPid(uint pid)
     {
         var h = OpenProcess(0x1000 /* PROCESS_QUERY_LIMITED_INFORMATION */, false, pid);
         if (h == 0) return 0;
         try
         {
-            var info = new nint[6]; // ExitStatus, PebBaseAddress, AffinityMask, BasePriority, UniqueProcessId, InheritedFromUniqueProcessId
-            var handle = GCHandle.Alloc(info, GCHandleType.Pinned);
-            try
-            {
-                int len = 0;
-                return NtQueryInformationProcess(h, 0, handle.AddrOfPinnedObject(), IntPtr.Size * 6, ref len) == 0 ? (uint)info[5] : 0;
-            }
-            finally { handle.Free(); }
+            var info = stackalloc nint[6]; // ExitStatus, PebBaseAddress, AffinityMask, BasePriority, UniqueProcessId, InheritedFromUniqueProcessId
+            int len = 0;
+            return NtQueryInformationProcess(h, 0, (nint)info, IntPtr.Size * 6, ref len) == 0 ? (uint)info[5] : 0;
         }
         finally { CloseHandle(h); }
     }

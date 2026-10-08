@@ -50,7 +50,6 @@ export function connect(h: Handlers) {
   const profile = structuredClone(mockProfile) as Profile
   if (isDemo) Object.assign(profile.settings, { language: 'en', hintsSeen: true })
   mock.state(profile, MOCK_STATUS)
-  mockWindows = h.windows
   pushWindows()
   startMockMeters(h.meters)
   setInterval(() => h.perf({ cpu: 0.4 + Math.random() * 0.2, memMb: 92 }), 2000)
@@ -97,10 +96,9 @@ export function setAppDevice(pid: number, endpoint: string | null) {
   for (const s of MOCK_WINDOWS.sessions) if (s.pid === pid) { s.endpoint = target; s.pinned = endpoint }
   pushWindows()
 }
-let mockWindows: Handlers['windows'] | undefined
 let mock: Handlers | undefined
 let mockLast: Profile | undefined
-const pushWindows = () => mockWindows?.(structuredClone(MOCK_WINDOWS))
+const pushWindows = () => mock?.windows(structuredClone(MOCK_WINDOWS))
 const pushState = () => mock?.state(structuredClone(mockLast!), MOCK_STATUS)
 
 /** Preset actions; the host replies with a new state. */

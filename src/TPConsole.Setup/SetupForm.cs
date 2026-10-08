@@ -12,10 +12,8 @@ sealed class Theme
 {
     public Color Bg, Raised, Line, Text, Text2, Text3, Accent, Warn, Ok, OnText;
 
-    public static readonly Theme Current = Load();
-
     // Dark, like the app's default theme.
-    static Theme Load() => new() { Bg = C(0x141413), Raised = C(0x22221f), Line = C(0x3a3934), Text = C(0xece9e2), Text2 = C(0xa8a399), Text3 = C(0x6f6b63), Accent = C(0xe0a24e), Warn = C(0xe5654b), Ok = C(0x6fae8a), OnText = C(0x141413) };
+    public static readonly Theme Current = new() { Bg = C(0x141413), Raised = C(0x22221f), Line = C(0x3a3934), Text = C(0xece9e2), Text2 = C(0xa8a399), Text3 = C(0x6f6b63), Accent = C(0xe0a24e), Warn = C(0xe5654b), Ok = C(0x6fae8a), OnText = C(0x141413) };
 
     static Color C(int rgb) => Color.FromArgb(rgb >> 16 & 0xff, rgb >> 8 & 0xff, rgb & 0xff);
     public static Color Mix(Color a, Color b, float t) =>

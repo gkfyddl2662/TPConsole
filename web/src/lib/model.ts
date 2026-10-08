@@ -154,7 +154,6 @@ export type OutputKey = 'out12' | 'mobileOut' | 'loopback12' | 'loopback34' | 'l
 export interface OutputDef {
   key: OutputKey
   name: string
-  hint: string
   /** Meter params [L, R]; not every output reports one. */
   meter?: [string, string]
   jacks?: ('headphone' | 'line' | 'aux')[]
@@ -162,22 +161,22 @@ export interface OutputDef {
 }
 
 export const OUTPUTS: OutputDef[] = [
-  { key: 'out12', name: 'OUT 1+2', hint: 'Headphones · line', meter: ['31.02', '32.02'], jacks: ['headphone', 'line', 'aux'], phoneGain: 'phoneGainHigh1' },
-  { key: 'mobileOut', name: 'Mobile OUT', hint: 'USB-C to phone', meter: ['33.02', '34.02'], jacks: ['headphone', 'line'], phoneGain: 'phoneGainHigh2' },
-  { key: 'loopback12', name: 'Loopback 1+2', hint: 'Recording input', meter: ['51.02', '52.02'] },
-  { key: 'loopback34', name: 'Loopback 3+4', hint: 'Recording input', meter: ['53.02', '54.02'] },
-  { key: 'loopback56', name: 'Loopback 5+6', hint: 'Recording input', meter: ['55.02', '56.02'] },
-  { key: 'spdif', name: 'S/PDIF', hint: 'Optical out', meter: ['5A.02', '5B.02'] },
+  { key: 'out12', name: 'OUT 1+2', meter: ['31.02', '32.02'], jacks: ['headphone', 'line', 'aux'], phoneGain: 'phoneGainHigh1' },
+  { key: 'mobileOut', name: 'Mobile OUT', meter: ['33.02', '34.02'], jacks: ['headphone', 'line'], phoneGain: 'phoneGainHigh2' },
+  { key: 'loopback12', name: 'Loopback 1+2', meter: ['51.02', '52.02'] },
+  { key: 'loopback34', name: 'Loopback 3+4', meter: ['53.02', '54.02'] },
+  { key: 'loopback56', name: 'Loopback 5+6', meter: ['55.02', '56.02'] },
+  { key: 'spdif', name: 'S/PDIF', meter: ['5A.02', '5B.02'] },
 ]
 
 /** Mixer channel pairs (6) -> default names. Channel index = 2*pair (+1 for right). */
 export const PAIRS = [
   { name: 'Mic', left: 'IN 1', right: 'IN 2', meter: ['21.04', '23.04'] },
   { name: 'Mobile IN', left: 'Mobile L', right: 'Mobile R', meter: ['22.04', '24.04'] },
-  { name: 'Desktop', left: 'PB 1', right: 'PB 2', sub: 'Playback 1/2' },
-  { name: 'DAW', left: 'PB 3', right: 'PB 4', sub: 'Playback 3/4' },
-  { name: 'Playback 5/6', left: 'PB 5', right: 'PB 6', sub: 'Playback 5/6' },
-  { name: 'Playback 7/8', left: 'PB 7', right: 'PB 8', sub: 'Playback 7/8' },
+  { name: 'Desktop', left: 'PB 1', right: 'PB 2' },
+  { name: 'DAW', left: 'PB 3', right: 'PB 4' },
+  { name: 'Playback 5/6', left: 'PB 5', right: 'PB 6' },
+  { name: 'Playback 7/8', left: 'PB 7', right: 'PB 8' },
 ] as const
 
 export const SOURCE_LABEL: Record<Source, string> = {

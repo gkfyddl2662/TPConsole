@@ -37,7 +37,6 @@ dotnet build $setup -c Release --no-incremental -p:Version=$Version -p:Payload=$
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 
 $exe = Join-Path $root "dist\TPConsole-Setup-$Version.exe"
-New-Item -ItemType Directory -Force (Split-Path $exe) | Out-Null
 Copy-Item "$build\setup\TPConsole-Setup.exe" $exe -Force
 Remove-Item $build -Recurse -Force
 Write-Host "Installer: $exe ($([math]::Round((Get-Item $exe).Length / 1MB, 1)) MB)" -ForegroundColor Green

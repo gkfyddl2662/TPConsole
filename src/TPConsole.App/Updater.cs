@@ -23,7 +23,11 @@ sealed class Updater : IDisposable
     public static readonly bool Installed = Path.GetDirectoryName(Environment.ProcessPath)!
         .Equals(InstallDir, StringComparison.OrdinalIgnoreCase);
 
-    static readonly HttpClient Http = CreateClient();
+    static readonly HttpClient Http = new()
+    {
+        Timeout = TimeSpan.FromMinutes(5),
+        DefaultRequestHeaders = { UserAgent = { new ProductInfoHeaderValue("TPConsole", Current.ToString()) } },
+    };
     readonly System.Threading.Timer _poll;
 
     public (Version Version, string Url, string Name)? Available { get; private set; }
@@ -32,13 +36,6 @@ sealed class Updater : IDisposable
     public event Action? Updated;
 
     public Updater() => _poll = new System.Threading.Timer(_ => _ = CheckAsync(), null, TimeSpan.FromSeconds(10), TimeSpan.FromHours(1));
-
-    static HttpClient CreateClient()
-    {
-        var http = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
-        http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("TPConsole", Current.ToString()));
-        return http;
-    }
 
     public async Task CheckAsync()
     {

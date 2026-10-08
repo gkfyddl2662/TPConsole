@@ -120,10 +120,7 @@ public sealed class DriverClient : IDisposable
     }
 
     /// <summary>16-byte channel ids. Direction: 0 = recording (10 ch on the E2x2), 1 = playback (8 ch).</summary>
-    public byte[][] ChannelIds(uint direction)
-    {
-        return Query(IoctlChannelIds, BitConverter.GetBytes(direction), 64 * 16).Chunk(16).ToArray();
-    }
+    public byte[][] ChannelIds(uint direction) => Query(IoctlChannelIds, BitConverter.GetBytes(direction), 64 * 16).Chunk(16).ToArray();
 
     // Meter request entries are {channel id (16), flags (4)}; flag bit0 resets the max-hold on read.
     static byte[] MeterEntries(byte[][] ids, uint flags) => [.. ids.SelectMany(id => id.Concat(BitConverter.GetBytes(flags)))];
@@ -151,11 +148,9 @@ public sealed class DriverClient : IDisposable
     /// Changes the ASIO buffer size / safe mode. The size must be one of AsioInfo.BufferSizes.
     /// The driver restarts streaming (short dropout) and tells the ASIO host to reset.
     /// </summary>
-    public void SetAsioBuffer(int instance, uint rate, uint size, bool safeMode)
-    {
+    public void SetAsioBuffer(int instance, uint rate, uint size, bool safeMode) =>
         Query(IoctlSetAsioBuffer, [.. BitConverter.GetBytes(instance), .. BitConverter.GetBytes(rate), .. BitConverter.GetBytes(size),
             .. BitConverter.GetBytes(safeMode ? 0x10000u : 0u)], 0);
-    }
 
     /// <summary>Per-device stream statistics. reset = clear this device's counters after reading.</summary>
     // The statistics block differs between driver releases (exact size required):
@@ -182,10 +177,8 @@ public sealed class DriverClient : IDisposable
     }
 
     /// <summary>Registers for driver events; the event is signalled when messages are queued (per handle).</summary>
-    public void RegisterNotifications(uint mask, SafeHandle autoResetEvent)
-    {
+    public void RegisterNotifications(uint mask, SafeHandle autoResetEvent) =>
         Query(IoctlRegisterNotification, [.. BitConverter.GetBytes(mask), .. BitConverter.GetBytes((ulong)autoResetEvent.DangerousGetHandle())], 0);
-    }
 
     /// <summary>Next queued driver event, or null when the queue is empty.</summary>
     public DriverEvent? ReadNotification()

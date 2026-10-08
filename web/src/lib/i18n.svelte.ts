@@ -26,14 +26,10 @@ const ko: Record<string, string> = {
   'Windows rec · {name}': 'Windows 녹음 · {name}',
   'Default only': '기본 장치 고정',
   'ASIO · set in app': 'ASIO · 앱에서 설정',
-  'Detecting which Playback this ASIO app uses… play some audio in it, or drag the dot onto the source.':
-    '이 ASIO 앱이 쓰는 Playback을 찾는 중… 앱에서 소리를 내거나, 점을 소스로 끌어다 놓으세요.',
   // hints
   'Right-click for more': '우클릭: 더 보기',
   'Click: adjust level · Right-click: disconnect': '클릭: 레벨 조절 · 우클릭: 연결 끊기',
   'Right-click: disconnect': '우클릭: 연결 끊기',
-  'ASIO output is chosen inside the app. Drag the dot onto the Playback it uses so the graph shows it.':
-    'ASIO 출력은 앱 안에서 정합니다. 쓰는 Playback으로 점을 끌어 두면 그래프에 표시됩니다.',
   'Drag the dot onto an output · Headphones icon: listen on OUT 1+2': '점을 출력으로 끌기 · 헤드폰 아이콘: OUT 1+2로 듣기',
   'Hover anything to see what it does. Right-click nodes and wires for all actions.':
     '마우스를 올리면 할 수 있는 동작이 여기에 나옵니다. 노드와 선을 우클릭하면 모든 동작이 나옵니다.',
@@ -81,7 +77,6 @@ const ko: Record<string, string> = {
   'Save as new preset…': '새 프리셋으로 저장…',
   'Preset name': '프리셋 이름',
   'Delete': '삭제',
-  "Write the current setup to the E2x2's memory?": '지금 설정을 E2x2 메모리에 쓸까요?',
   'Cancel': '취소',
   'Stored on device': '장치에 저장됨',
   'Device not connected': '장치가 연결되지 않았습니다',
@@ -121,11 +116,7 @@ const ko: Record<string, string> = {
   'Automatic standby': '자동 대기',
   'Mobile app function': '모바일 앱 기능',
   'Takes effect after the device restarts.': '장치를 다시 켜면 적용됩니다.',
-  'Choose which E2x2 channel pairs Windows shows as sound devices, and their names.':
-    'Windows에 사운드 장치로 보일 E2x2 채널 쌍과 이름을 고릅니다.',
   'Apply': '적용',
-  'Needs administrator permission. If devices are added or removed, the E2x2 restarts and audio stops for a few seconds; Windows may reset app outputs for removed devices.':
-    '관리자 권한이 필요합니다. 장치를 추가하거나 빼면 E2x2가 다시 시작되어 몇 초간 소리가 끊기고, 빠진 장치를 쓰던 앱의 출력 지정이 초기화될 수 있습니다.',
   'Unknown': '알 수 없음',
   'Not in use': '사용 안 함',
   'Hidden in Windows': 'Windows에서 숨김',

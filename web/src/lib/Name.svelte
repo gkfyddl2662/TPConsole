@@ -66,7 +66,7 @@
   }
   .pencil:hover { color: var(--text); background: var(--hover); }
   /* Visible while hovering the node / card / row that owns the name. */
-  :global(:is(.node, article, .src, .mix, .row):hover) .pencil, .pencil:focus-visible { opacity: 1; }
+  :global(.node:hover) .pencil, .pencil:focus-visible { opacity: 1; }
   .edit { display: flex; align-items: center; gap: 2px; min-width: 0; flex: 1; }
   .eb { flex: none; width: 18px; height: 18px; border-radius: 3px; font-size: 11px; color: var(--text-3); }
   .eb.ok:hover { color: var(--meter-lo); background: var(--hover); }

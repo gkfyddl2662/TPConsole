@@ -342,7 +342,7 @@ public static class VirtualRouting
         List<VirtualRoute> routes, Action<string> log)
     {
         foreach (var n in plugin.GetValueNames().Where(n => n.StartsWith("w_", StringComparison.Ordinal))) plugin.DeleteValue(n);
-        string? Side(string end, bool from)
+        (string Name, int Ch)? Side(string end, bool from)
         {
             var (kind, arg) = (end.Split(':')[0], end.Split(':').ElementAtOrDefault(1));
             if (!int.TryParse(arg, out var n)) return null;
@@ -350,14 +350,14 @@ public static class VirtualRouting
             {
                 case "v":
                     int pi = plays.FindIndex(d => d.Id == n), ri = recs.FindIndex(d => d.Id == n);
-                    if (from && pi >= 0) return $"VirtIn{{0}}:{pi * 2}";
-                    if (!from && ri >= 0) return $"VirtOut{{0}}:{ri * 2}";
+                    if (from && pi >= 0) return ("VirtIn", pi * 2);
+                    if (!from && ri >= 0) return ("VirtOut", ri * 2);
                     return null;
-                case "hwin" when from && n is >= 0 and < 5: return $"DevIn{{0}}:{n * 2}";
+                case "hwin" when from && n is >= 0 and < 5: return ("DevIn", n * 2);
                 // What Windows apps play on Playback 1/2..7/8 (before it reaches the E2x2).
-                case "appin" when from && n is >= 0 and < 4: return $"AppIn{{0}}:{n * 2}";
-                case "hwout" when !from && n is >= 0 and < 4: return $"DevOut{{0}}:{n * 2}";
-                case "apprec" when !from && n is >= 0 and < 5: return $"AppOut{{0}}:{n * 2}";
+                case "appin" when from && n is >= 0 and < 4: return ("AppIn", n * 2);
+                case "hwout" when !from && n is >= 0 and < 4: return ("DevOut", n * 2);
+                case "apprec" when !from && n is >= 0 and < 5: return ("AppOut", n * 2);
                 default: return null;
             }
         }
@@ -369,12 +369,9 @@ public static class VirtualRouting
         for (int k = 0; k < Math.Min(vin, vout); k++) plugin.SetValue($"w_VirtIn{k}_VirtOut{k}", 0, RegistryValueKind.DWord);
         foreach (var r in routes)
         {
-            var (a, b) = (Side(r.From, true), Side(r.To, false));
-            if (a is null || b is null) { log($"skipped route {r.From} -> {r.To}"); continue; }
-            var (an, ab) = (a.Split(':')[0], int.Parse(a.Split(':')[1]));
-            var (bn, bb) = (b.Split(':')[0], int.Parse(b.Split(':')[1]));
+            if (Side(r.From, true) is not { } a || Side(r.To, false) is not { } b) { log($"skipped route {r.From} -> {r.To}"); continue; }
             for (int c = 0; c < 2; c++)
-                plugin.SetValue($"w_{string.Format(an, ab + c)}_{string.Format(bn, bb + c)}", Unity, RegistryValueKind.DWord);
+                plugin.SetValue($"w_{a.Name}{a.Ch + c}_{b.Name}{b.Ch + c}", Unity, RegistryValueKind.DWord);
         }
     }
 

@@ -571,28 +571,20 @@ public partial class MainWindow : Window
     }
 
     // ---- automatic presets: switch while an app runs ----------------------------------------
-    readonly HashSet<string> _ruleApps = new(StringComparer.OrdinalIgnoreCase);
+    // App -> the preset that was active before its rule fired (present = the app is running).
     readonly Dictionary<string, string?> _ruleReturn = new(StringComparer.OrdinalIgnoreCase);
 
     void CheckPresetRules(HashSet<string> running)
     {
-        var rules = _engine.Profile.Settings.PresetRules;
-        foreach (var r in rules)
+        foreach (var r in _engine.Profile.Settings.PresetRules)
         {
             if (string.IsNullOrWhiteSpace(r.App)) continue;
-            bool now = running.Contains(r.App), before = _ruleApps.Contains(r.App);
-            if (now && !before)
+            if (running.Contains(r.App))
             {
-                _ruleApps.Add(r.App);
-                _ruleReturn[r.App] = _engine.Profile.ActivePreset;
-                LoadPreset(r.Preset);
+                if (_ruleReturn.TryAdd(r.App, _engine.Profile.ActivePreset)) LoadPreset(r.Preset);
             }
-            else if (!now && before)
-            {
-                _ruleApps.Remove(r.App);
-                if (r.Revert && _ruleReturn.TryGetValue(r.App, out var back) && back is not null && _engine.Profile.ActivePreset == r.Preset)
-                    LoadPreset(back);
-            }
+            else if (_ruleReturn.Remove(r.App, out var back) && r.Revert && back is not null && _engine.Profile.ActivePreset == r.Preset)
+                LoadPreset(back);
         }
     }
 
