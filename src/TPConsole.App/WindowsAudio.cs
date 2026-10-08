@@ -221,7 +221,12 @@ public sealed class WindowsAudio : IDisposable
     ProcInfo Proc(uint pid, string displayName)
     {
         if (_procs.TryGetValue(pid, out var known)) return known;
-        var (name, path) = Describe(pid, displayName);
+        // WebView2 apps (new Teams, Outlook, ...) play from msedgewebview2.exe: name them after the app
+        // that hosts the WebView, so they group with it.
+        uint owner = pid;
+        for (int i = 0; i < 6 && IsWebView2(ProcessPath(owner)) && ParentPid(owner) is var parent and > 0; i++) owner = parent;
+        if (IsWebView2(ProcessPath(owner))) owner = pid;
+        var (name, path) = Describe(owner, owner == pid ? displayName : "");
         bool service = path?.EndsWith("svchost.exe", StringComparison.OrdinalIgnoreCase) ?? false;
         bool web = CommandLine(pid)?.Contains("--utility-sub-type=audio.mojom.AudioService", StringComparison.Ordinal) ?? false;
         return _procs[pid] = new ProcInfo(name, path, service, web);
@@ -731,6 +736,27 @@ public sealed class WindowsAudio : IDisposable
     [DllImport("kernel32")] static extern nint OpenProcess(uint access, bool inherit, uint pid);
     [DllImport("ntdll")] static extern int NtQueryInformationProcess(nint h, int infoClass, nint info, int length, ref int returned);
     [StructLayout(LayoutKind.Sequential)] struct UnicodeString { public ushort Length, MaximumLength; public nint Buffer; }
+
+    static bool IsWebView2(string? path) => path?.EndsWith("msedgewebview2.exe", StringComparison.OrdinalIgnoreCase) ?? false;
+
+    /// <summary>Parent process id (ProcessBasicInformation.InheritedFromUniqueProcessId), or 0.</summary>
+    static uint ParentPid(uint pid)
+    {
+        var h = OpenProcess(0x1000 /* PROCESS_QUERY_LIMITED_INFORMATION */, false, pid);
+        if (h == 0) return 0;
+        try
+        {
+            var info = new nint[6]; // ExitStatus, PebBaseAddress, AffinityMask, BasePriority, UniqueProcessId, InheritedFromUniqueProcessId
+            var handle = GCHandle.Alloc(info, GCHandleType.Pinned);
+            try
+            {
+                int len = 0;
+                return NtQueryInformationProcess(h, 0, handle.AddrOfPinnedObject(), IntPtr.Size * 6, ref len) == 0 ? (uint)info[5] : 0;
+            }
+            finally { handle.Free(); }
+        }
+        finally { CloseHandle(h); }
+    }
 
     /// <summary>Another process's command line (ProcessCommandLineInformation), or null.</summary>
     static string? CommandLine(uint pid)

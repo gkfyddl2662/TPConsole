@@ -217,6 +217,8 @@ const ko: Record<string, string> = {
   'Set in app': '앱에서 설정',
   'Alerts': '알림',
   'Voice': '음성',
+  'Web sounds': '웹 소리',
+  'App audio': '앱 자체 소리',
   'Chosen inside {name}: change it in its own audio settings': '{name} 안에서 고른 장치입니다. {name}의 오디오 설정에서 바꾸세요',
   'Follows the Windows communications device: change it on a Playback node (right-click)': 'Windows 통신 장치를 따릅니다. 바꾸려면 Playback 노드를 우클릭하세요',
   'Output device · whole app': '출력 장치 · 앱 전체에 적용',

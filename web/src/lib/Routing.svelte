@@ -84,11 +84,14 @@
     return { kind: 'app', label: t('Set in app'), hint: t('Chosen in the app’s own settings, not by Windows') }
   }
   /** Which audio of a Chromium/Electron program a node is, when the program plays from both kinds of
-   *  process (Discord: notifications and media from the audio service, voice from its own engine). */
+   *  process: web sounds from its audio-service process, its own (native) audio from another. Generic
+   *  names, except where the split is known (Discord: alerts vs. its voice engine). */
+  const KNOWN_KINDS: Record<string, [string, string]> = { discord: ['Alerts', 'Voice'] }
   function procKind(s: WinSession): string | undefined {
     const same = appViews.filter(v => v.exe && v.exe === s.exe)
     if (!same.some(v => v.webAudio) || !same.some(v => !v.webAudio)) return undefined
-    return t(s.webAudio ? 'Alerts' : 'Voice')
+    const [web, own] = KNOWN_KINDS[s.exe!.toLowerCase()] ?? ['Web sounds', 'App audio']
+    return t(s.webAudio ? web : own)
   }
   const movable = (s: WinSession) => !s.system && ['pin', 'default'].includes(appReason(s).kind)
   const renderSessions = (ep: WinEndpoint | undefined) =>
