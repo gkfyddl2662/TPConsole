@@ -126,8 +126,6 @@ public sealed class WindowsAudio : IDisposable
         public void OnSessionDisconnected(AudioSessionDisconnectReason reason) => owner.Poke();
     }
 
-    static bool SameKey(PropertyKey a, PropertyKey b) => a.formatId == b.formatId && a.propertyId == b.propertyId;
-
     void Run()
     {
         using var enumerator = new MMDeviceEnumerator();
@@ -140,7 +138,7 @@ public sealed class WindowsAudio : IDisposable
         // Fires often for unrelated properties; only names matter here.
         deviceEvents.PropertyValueChanged += (_, e) =>
         {
-            if (SameKey(e.PropertyKey, PropertyKeys.PKEY_Device_DeviceDesc) || SameKey(e.PropertyKey, PropertyKeys.PKEY_Device_FriendlyName)) Poke();
+            if (e.PropertyKey.Equals(PropertyKeys.PKEY_Device_DeviceDesc) || e.PropertyKey.Equals(PropertyKeys.PKEY_Device_FriendlyName)) Poke();
         };
         string lastJson = "";
         var sinceScan = Stopwatch.StartNew();

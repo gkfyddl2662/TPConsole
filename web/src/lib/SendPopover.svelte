@@ -3,8 +3,7 @@
   import { outside } from './outside'
   import { t } from './i18n.svelte'
   import { hint } from './hint.svelte'
-  import { app, set, nameOf, mixName } from './store.svelte'
-  import { MIXES } from './model'
+  import { app, nameOf, mixName, mixColor, setSend } from './store.svelte'
   import type { SourceRow } from './sources'
   import Fader from './Fader.svelte'
   import Pan from './Pan.svelte'
@@ -14,9 +13,8 @@
   let { x, y, row, mix, onclose }: Props = $props()
 
   const ch = $derived(app.profile!.mixer.mixes[mix].channel[row.channels[0]])
-  const color = $derived(`var(--mix-${MIXES[mix].toLowerCase()})`)
-  const setAll = (field: string, value: unknown) =>
-    set(...row.channels.map(c => ({ path: `mixer.mixes.${mix}.channel.${c}.${field}`, value })))
+  const color = $derived(mixColor(mix))
+  const setAll = (field: string, value: unknown) => setSend(mix, row.channels, field, value)
 
 </script>
 

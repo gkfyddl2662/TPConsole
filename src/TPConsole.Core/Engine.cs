@@ -339,9 +339,9 @@ public sealed class Engine : IDisposable
     void LogInputChanges((bool Mon, bool P48, bool Inst, bool Mute)[] before, string source)
     {
         var after = InputFlags();
-        for (int i = 0; i < Math.Min(before.Length, after.Length); i++)
+        for (int i = 0; i < after.Length; i++)
         {
-            void One(string name, bool a, bool b) { if (a != b) Log($"{InputNames.ElementAtOrDefault(i) ?? $"input {i}"} {name} {(b ? "on" : "off")} ({source})"); }
+            void One(string name, bool a, bool b) { if (a != b) Log($"{InputNames[i]} {name} {(b ? "on" : "off")} ({source})"); }
             One("MON", before[i].Mon, after[i].Item1);
             One("48V", before[i].P48, after[i].Item2);
             One("INST", before[i].Inst, after[i].Item3);

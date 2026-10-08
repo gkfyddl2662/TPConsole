@@ -76,31 +76,30 @@ public sealed class Mixer
     /// <summary>All wire values, in Control Center's startup-sync order.</summary>
     public IEnumerable<Frame> ToFrames()
     {
-        Frame F(byte a, byte s, int v) => new(a, s, v);
         static int B(bool b) => b ? 1 : 0;
 
-        yield return F(0x37, 0x01, B(Out12.Headphone));
-        yield return F(0x37, 0x03, B(Out12.Line));
-        yield return F(0x37, 0x05, B(Out12.Aux));
-        yield return F(0x37, 0x02, B(MobileOut.Headphone));
-        yield return F(0x37, 0x04, B(MobileOut.Line));
+        yield return new(0x37, 0x01, B(Out12.Headphone));
+        yield return new(0x37, 0x03, B(Out12.Line));
+        yield return new(0x37, 0x05, B(Out12.Aux));
+        yield return new(0x37, 0x02, B(MobileOut.Headphone));
+        yield return new(0x37, 0x04, B(MobileOut.Line));
         // Control Center mirrors the OUT 1+2 AUX flag here; kept as-is until tested.
-        yield return F(0x37, 0x06, B(Out12.Aux));
-        yield return F(0x35, 0x02, B(PhoneGainHigh1));
-        yield return F(0x36, 0x02, B(PhoneGainHigh2));
+        yield return new(0x37, 0x06, B(Out12.Aux));
+        yield return new(0x35, 0x02, B(PhoneGainHigh1));
+        yield return new(0x36, 0x02, B(PhoneGainHigh2));
 
-        yield return F(0x35, 0x01, (int)Out12.Source);
-        yield return F(0x36, 0x01, (int)MobileOut.Source);
-        yield return F(0x57, 0x01, (int)Loopback12.Source);
-        yield return F(0x58, 0x01, (int)Loopback34.Source);
-        yield return F(0x59, 0x01, (int)Loopback56.Source);
-        yield return F(0x5C, 0x01, (int)Spdif.Source);
+        yield return new(0x35, 0x01, (int)Out12.Source);
+        yield return new(0x36, 0x01, (int)MobileOut.Source);
+        yield return new(0x57, 0x01, (int)Loopback12.Source);
+        yield return new(0x58, 0x01, (int)Loopback34.Source);
+        yield return new(0x59, 0x01, (int)Loopback56.Source);
+        yield return new(0x5C, 0x01, (int)Spdif.Source);
 
         // Control Center ignores mute on OUT 1+2; we honour it everywhere.
         foreach (var (o, a) in new[] { (Out12, (byte)0x31), (MobileOut, (byte)0x33), (Loopback12, (byte)0x51), (Loopback34, (byte)0x53), (Loopback56, (byte)0x55), (Spdif, (byte)0x5A) })
         {
-            yield return F(a, 0x03, o.MuteL ? 0 : Levels.Level(o.LevelDbL, o.Invert));
-            yield return F((byte)(a + 1), 0x03, (o.Link ? o.MuteL : o.MuteR) ? 0 : Levels.Level(o.Link ? o.LevelDbL : o.LevelDbR, o.Invert));
+            yield return new(a, 0x03, o.MuteL ? 0 : Levels.Level(o.LevelDbL, o.Invert));
+            yield return new((byte)(a + 1), 0x03, (o.Link ? o.MuteL : o.MuteR) ? 0 : Levels.Level(o.Link ? o.LevelDbL : o.LevelDbR, o.Invert));
         }
 
         for (int m = 0; m < Mixes.Length; m++)
@@ -115,8 +114,8 @@ public sealed class Mixer
                 int toL = silent ? 0 : Levels.MixerSend(c.LevelDb, 100 - c.Pan, c.Invert);
                 int toR = silent ? 0 : Levels.MixerSend(c.LevelDb, c.Pan, c.Invert);
                 byte sub = (byte)(i + 1);
-                yield return F(busL, sub, toL);
-                yield return F(busR, sub, toR);
+                yield return new(busL, sub, toL);
+                yield return new(busR, sub, toR);
             }
         }
 
@@ -125,15 +124,15 @@ public sealed class Mixer
         {
             var c = Inputs[i];
             byte a = (byte)(0x21 + i);
-            yield return F(a, 0x01, B(c.Monitor));
-            yield return F(a, 0x02, B(c.Phantom48V));
-            yield return F(a, 0x03, B(c.Instrument));
+            yield return new(a, 0x01, B(c.Monitor));
+            yield return new(a, 0x02, B(c.Phantom48V));
+            yield return new(a, 0x03, B(c.Instrument));
         }
         for (int i = 0; i < 4; i++)
         {
             var c = Inputs[i];
             bool silent = c.Mute || (anyInputSolo && !c.Solo);
-            yield return F((byte)(0x21 + i), 0x05, silent ? 0 : Levels.Level(c.GainDb, c.Invert));
+            yield return new((byte)(0x21 + i), 0x05, silent ? 0 : Levels.Level(c.GainDb, c.Invert));
         }
     }
 }

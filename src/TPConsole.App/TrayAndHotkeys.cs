@@ -10,11 +10,9 @@ namespace TPConsole.App;
 public sealed class Tray : IDisposable
 {
     readonly Forms.NotifyIcon _icon;
-    readonly Engine _engine;
 
     public Tray(Engine engine, Action open, Action quit, Action<string> loadPreset)
     {
-        _engine = engine;
         _icon = new Forms.NotifyIcon { Icon = MakeIcon(), Text = "TPConsole", Visible = true };
         _icon.DoubleClick += (_, _) => open();
         var menu = new Forms.ContextMenuStrip();
@@ -22,12 +20,12 @@ public sealed class Tray : IDisposable
         {
             menu.Items.Clear();
             menu.Items.Add("Open TPConsole", null, (_, _) => open());
-            if (_engine.Profile.Presets.Count > 0)
+            if (engine.Profile.Presets.Count > 0)
             {
                 menu.Items.Add(new Forms.ToolStripSeparator());
-                foreach (var p in _engine.Profile.Presets)
+                foreach (var p in engine.Profile.Presets)
                 {
-                    var item = new Forms.ToolStripMenuItem(p.Name) { Checked = p.Name == _engine.Profile.ActivePreset };
+                    var item = new Forms.ToolStripMenuItem(p.Name) { Checked = p.Name == engine.Profile.ActivePreset };
                     var name = p.Name;
                     item.Click += (_, _) => loadPreset(name);
                     menu.Items.Add(item);
@@ -60,7 +58,6 @@ public sealed class Hotkeys : IDisposable
     const int WM_HOTKEY = 0x0312;
     const uint MOD_ALT = 1, MOD_CONTROL = 2, MOD_SHIFT = 4, MOD_WIN = 8, MOD_NOREPEAT = 0x4000;
 
-    readonly nint _hwnd;
     readonly Engine _engine;
     readonly Action<string> _loadPreset;
     readonly HwndSource _source;
@@ -69,7 +66,6 @@ public sealed class Hotkeys : IDisposable
 
     public Hotkeys(nint hwnd, Engine engine, Action<string> loadPreset)
     {
-        _hwnd = hwnd;
         _engine = engine;
         _loadPreset = loadPreset;
         _source = HwndSource.FromHwnd(hwnd);
@@ -83,7 +79,7 @@ public sealed class Hotkeys : IDisposable
         var sig = System.Text.Json.JsonSerializer.Serialize(wanted);
         if (sig == _signature) return [];
         _signature = sig;
-        for (int i = 0; i < _active.Count; i++) UnregisterHotKey(_hwnd, i + 1);
+        for (int i = 0; i < _active.Count; i++) UnregisterHotKey(_source.Handle, i + 1);
         _active.Clear();
         var failed = new List<Hotkey>();
         foreach (var h in wanted)
@@ -91,7 +87,7 @@ public sealed class Hotkeys : IDisposable
             if (h.Key == 0) continue;
             uint mods = MOD_NOREPEAT | (h.Ctrl ? MOD_CONTROL : 0) | (h.Alt ? MOD_ALT : 0) | (h.Shift ? MOD_SHIFT : 0) | (h.Win ? MOD_WIN : 0);
             _active.Add(h);
-            if (!RegisterHotKey(_hwnd, _active.Count, mods, (uint)h.Key)) failed.Add(h);
+            if (!RegisterHotKey(_source.Handle, _active.Count, mods, (uint)h.Key)) failed.Add(h);
         }
         return failed;
     }
@@ -145,7 +141,7 @@ public sealed class Hotkeys : IDisposable
 
     public void Dispose()
     {
-        for (int i = 0; i < _active.Count; i++) UnregisterHotKey(_hwnd, i + 1);
+        for (int i = 0; i < _active.Count; i++) UnregisterHotKey(_source.Handle, i + 1);
         _source.RemoveHook(Hook);
     }
 

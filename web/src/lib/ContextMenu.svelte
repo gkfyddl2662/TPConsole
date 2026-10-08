@@ -40,11 +40,6 @@
     min-width: 230px;
     max-height: 70vh;
     overflow: auto;
-    padding: 6px;
-    border-radius: 8px;
-    background: var(--raised);
-    border: 1px solid var(--line-strong);
-    box-shadow: 0 12px 32px var(--shadow);
   }
   .head { padding: 4px 8px 6px; font-size: 11px; color: var(--text-3); }
   .section { padding: 6px 8px 2px; font-size: 10.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-4); }

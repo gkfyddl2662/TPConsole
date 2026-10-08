@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte'
-  import { app, set, nameOf, mixName, sourceName, outOff, muteOut, mixMeters } from './store.svelte'
+  import { app, set, nameOf, mixName, sourceName, outOff, muteOut, mixMeters, mixColor, setSend, setOutLevel, setOutSource } from './store.svelte'
   import {
     MIXES, OUTPUTS, PAIRS, SOURCE_LABEL, DIRECT_SOURCES,
     type Source, type OutputKey, type WinSession, type WinEndpoint, type AsioHost, type VirtualDevice, type VirtualRoute,
@@ -263,7 +263,6 @@
     /** A specific in-port inside the target node (a mix's send row); falls back to the node. */
     toPort?: string
   }
-  const mixColor = (m: number) => `var(--mix-${MIXES[m].toLowerCase()})`
 
   // ---- sends: each MIX node lists the sources connected to it, with their level ------------
   const sendOn = (m: number, r: SourceRow) => { const ch = mixer.mixes[m].channel[r.channels[0]]; return !ch.mute && ch.levelDb !== null }
@@ -322,8 +321,6 @@
       set({ path: 'mixer.out12.source', value: held.prev }, { path: 'mixer.out12.muteL', value: held.prevMute }, { path: 'mixer.out12.muteR', value: held.prevMute })
     held = null
   }
-  const setSend = (m: number, r: SourceRow, field: string, value: unknown) =>
-    set(...r.channels.map(c => ({ path: `mixer.mixes.${m}.channel.${c}.${field}`, value })))
   let collapsed = $state<Record<number, boolean>>({})
   const pairNode = (k: number) => `src:${pairs[k].rows[0].key}`
 
@@ -615,7 +612,7 @@
         const row = rows.find(r => `src:${r.key}` === from)!
         value = row.pair === 0 && row.channels.length === 1 ? (row.channels[0] === 0 ? 'In1' : 'In2') : SOURCE_OF_ROW[row.pair]
       }
-      set({ path: `mixer.${key}.source`, value }, { path: `mixer.${key}.muteL`, value: false }, { path: `mixer.${key}.muteR`, value: false })
+      setOutSource(key, value)
     }
   }
 
@@ -626,7 +623,7 @@
     if (edge.vroute) {
       toggleRoute(edge.vroute.from, edge.vroute.to)
     } else if (edge.send) {
-      setSend(edge.send.mix, edge.send.row, 'mute', true)
+      setSend(edge.send.mix, edge.send.row.channels, 'mute', true)
     } else if (edge.output) {
       muteOut(edge.output, true)
     } else if (edge.from.startsWith('app:')) {
@@ -681,7 +678,7 @@
       MIXES.forEach((_, m) => items.push({
         label: mixName(m), checked: sendOn(m, row),
         action: () => sendOn(m, row)
-          ? setSend(m, row, 'mute', true)
+          ? setSend(m, row.channels, 'mute', true)
           : connect(`src:${row.key}`, `mix:${m}`),
       }))
     }
@@ -709,7 +706,7 @@
   function outMenu(e: MouseEvent, key: OutputKey, fallback: string) {
     const o = mixer[key]
     const off = outOff(key)
-    const pick = (value: Source) => set({ path: `mixer.${key}.source`, value }, { path: `mixer.${key}.muteL`, value: false }, { path: `mixer.${key}.muteR`, value: false })
+    const pick = (value: Source) => setOutSource(key, value)
     const items: Item[] = [{ section: t('Source') }]
     MIXES.forEach((mx, m) => items.push({ label: mixName(m), checked: !off && o.source === `Mix${mx}`, action: () => pick(`Mix${mx}` as Source) }))
     for (const s of DIRECT_SOURCES) items.push({ label: SOURCE_LABEL[s], checked: !off && o.source === s, action: () => pick(s) })
@@ -1053,9 +1050,9 @@
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <span class="send-name grab" onpointerdown={e => reorderStart(e, m, r.key)}>{sendName(r)}</span>
                     <Fader compact value={ch.levelDb} min={-89} max={12} color={mixColor(m)} dim={silenced}
-                      label="{rowName(r)} → {mixName(m)}" onchange={v => setSend(m, r, 'levelDb', v)} />
-                    <button class="ms" class:solo={ch.solo} aria-label={t('Solo in this mix')} onclick={() => setSend(m, r, 'solo', !ch.solo)}>S</button>
-                    <button class="ms x" aria-label={t('Disconnect')} onclick={() => setSend(m, r, 'mute', true)}>×</button>
+                      label="{rowName(r)} → {mixName(m)}" onchange={v => setSend(m, r.channels, 'levelDb', v)} />
+                    <button class="ms" class:solo={ch.solo} aria-label={t('Solo in this mix')} onclick={() => setSend(m, r.channels, 'solo', !ch.solo)}>S</button>
+                    <button class="ms x" aria-label={t('Disconnect')} onclick={() => setSend(m, r.channels, 'mute', true)}>×</button>
                   </div>
                 {/each}
               </div>
@@ -1093,7 +1090,7 @@
             </span>
             {#if out_.link}
               <Fader compact value={out_.levelDbL} min={-89} max={0} label="{outName(o.key, o.name)} level" dim={off} color="var(--text-2)"
-                onchange={v => set({ path: `${path}.levelDbL`, value: v }, { path: `${path}.levelDbR`, value: v })} />
+                onchange={v => setOutLevel(o.key, v)} />
             {:else}
               <div class="lr"><span>L</span><Fader compact value={out_.levelDbL} min={-89} max={0} label="{o.name} L" dim={off} color="var(--text-2)"
                 onchange={v => set({ path: `${path}.levelDbL`, value: v })} /></div>

@@ -2,7 +2,7 @@
   import { keepInView } from './keepInView'
   import { t } from './i18n.svelte'
   import { outside } from './outside'
-  import { app, set, nameOf, sourceName, muteOut } from './store.svelte'
+  import { app, nameOf, sourceName, muteOut, setOutLevel } from './store.svelte'
   import { OUTPUTS, type OutputKey } from './model'
   import Fader from './Fader.svelte'
 
@@ -13,7 +13,6 @@
 
   const o = $derived(app.profile!.mixer[output])
   const def = $derived(OUTPUTS.find(d => d.key === output)!)
-  const path = $derived(`mixer.${output}`)
 
 </script>
 
@@ -26,7 +25,7 @@
     <span>{nameOf(`out:${output}`, def.name)}</span>
   </div>
   <Fader value={o.levelDbL} min={-89} max={0} {color} label={t('Output level')}
-    onchange={v => set({ path: `${path}.levelDbL`, value: v }, ...(o.link ? [{ path: `${path}.levelDbR`, value: v }] : []))} />
+    onchange={v => setOutLevel(output, v, o.link)} />
   <button class="remove" onclick={() => { muteOut(output, true); onclose() }}>
     {t('Disconnect')}
   </button>

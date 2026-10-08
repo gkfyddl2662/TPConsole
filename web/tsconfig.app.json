@@ -5,11 +5,8 @@
     "target": "es2023",
     "module": "esnext",
     "types": ["svelte", "vite/client"],
-    "allowArbitraryExtensions": true,
     "noEmit": true,
-    "allowJs": true,
-    "checkJs": true,
     "moduleDetection": "force"
   },
-  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"]
+  "include": ["src/**/*.ts", "src/**/*.svelte"]
 }

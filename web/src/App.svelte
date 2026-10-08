@@ -14,13 +14,10 @@
   const knob = $derived(app.status.monitorMixKnob)
   const tipsSeen = $derived(app.profile?.settings?.hintsSeen ?? true)
   $effect(() => { document.documentElement.lang = lang() })
-  // Theme: dark by default; "auto" follows Windows (WebView2 reports the app mode as prefers-color-scheme).
-  const lightQuery = matchMedia('(prefers-color-scheme: light)')
-  let systemLight = $state(lightQuery.matches)
-  lightQuery.addEventListener('change', e => (systemLight = e.matches))
+  // Theme (dark by default): app.css colours are light-dark() pairs; "auto" lets WebView2 follow Windows.
   $effect(() => {
     const t = app.profile?.settings?.theme ?? 'dark'
-    document.documentElement.dataset.theme = t === 'auto' ? (systemLight ? 'light' : 'dark') : t
+    document.documentElement.style.colorScheme = t === 'auto' ? 'light dark' : t
   })
   // Meter bars glide from one device value to the next: the E2x2 sends levels every ~67 ms (15 Hz),
   // whatever the screen refresh is.

@@ -101,6 +101,19 @@ export function nameOf(key: string, fallback: string): string {
 }
 
 export const mixName = (m: number) => nameOf(`mix${m}`, `MIX ${MIXES[m]}`)
+export const mixColor = (m: number) => `var(--mix-${MIXES[m].toLowerCase()})`
+
+/** One field of a source's send into MIX m, on each of its channels (a linked pair has two). */
+export const setSend = (m: number, channels: number[], field: string, value: unknown) =>
+  set(...channels.map(c => ({ path: `mixer.mixes.${m}.channel.${c}.${field}`, value })))
+
+/** Output level: left, plus right when the sides are linked. */
+export const setOutLevel = (k: OutputKey, v: number | null, linked = true) =>
+  set({ path: `mixer.${k}.levelDbL`, value: v }, ...(linked ? [{ path: `mixer.${k}.levelDbR`, value: v }] : []))
+
+/** Make an output play a source (and reconnect it). */
+export const setOutSource = (k: OutputKey, value: Source) =>
+  set({ path: `mixer.${k}.source`, value }, { path: `mixer.${k}.muteL`, value: false }, { path: `mixer.${k}.muteR`, value: false })
 
 /** What an output plays: a mix (by its name) or a direct source. */
 export const sourceName = (s: Source) => (s.startsWith('Mix') ? mixName('ABCD'.indexOf(s.slice(3))) : SOURCE_LABEL[s])

@@ -118,11 +118,6 @@
     left: 0;
     z-index: 30;
     width: 280px;
-    padding: 6px;
-    border-radius: 8px;
-    background: var(--raised);
-    border: 1px solid var(--line-strong);
-    box-shadow: 0 12px 32px var(--shadow);
   }
   .empty { margin: 6px 8px; font-size: 12px; color: var(--text-3); }
   .row { display: flex; align-items: center; border-radius: 5px; }

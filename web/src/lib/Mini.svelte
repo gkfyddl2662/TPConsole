@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { app, set, nameOf, mixName, outOff, muteOut, mixMeters } from './store.svelte'
+  import { app, set, nameOf, mixName, outOff, muteOut, mixMeters, setOutLevel } from './store.svelte'
   import { t } from './i18n.svelte'
   import { hint } from './hint.svelte'
   import { MIXES, OUTPUTS } from './model'
@@ -36,7 +36,7 @@
       <div class="row">
         <span class="lbl">{nameOf(`out:${d.key}`, d.name)}</span>
         <Fader compact value={o.levelDbL} min={-89} max={0} dim={off} color="var(--text-2)" label={d.name}
-          onchange={v => set({ path: `mixer.${d.key}.levelDbL`, value: v }, { path: `mixer.${d.key}.levelDbR`, value: v })} />
+          onchange={v => setOutLevel(d.key, v)} />
         <button class="m" class:on={off} onclick={() => muteOut(d.key, !off)}>M</button>
       </div>
     {/each}

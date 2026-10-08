@@ -15,7 +15,6 @@ public sealed class E2x2Device : IDisposable
     const string Interface = "mi_04";
 
     readonly FileStream _stream;
-    readonly Lock _writeLock = new();
 
     public string Path { get; }
 
@@ -39,7 +38,7 @@ public sealed class E2x2Device : IDisposable
     public void Write(Frame frame)
     {
         var report = frame.ToReport();
-        lock (_writeLock) _stream.Write(report);
+        _stream.Write(report); // callers hold the engine's lock
     }
 
     /// <summary>Streams every valid frame the device sends (mostly level meters) until cancelled.</summary>

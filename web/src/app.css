@@ -1,32 +1,34 @@
 @import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 
 :root {
-  /* Warm graphite, like anodised hardware. One accent per mix bus, all muted. */
-  --bg: #141413;
-  --panel: #1a1a18;
-  --raised: #22221f;
-  --hover: #2a2a26;
-  --line: #2c2b28;
-  --line-strong: #3a3934;
-  --text: #ece9e2;
-  --text-2: #a8a399;
-  --text-3: #6f6b63;
-  --text-4: #4a4842;
+  /* Each colour is light-dark(light, dark): warm paper / warm graphite, like anodised hardware, with the
+     same hues deeper on the pale ground. One accent per mix bus, all muted. color-scheme picks the side:
+     App.svelte sets it from Settings → Theme ("auto" = light dark, i.e. follow Windows). */
+  --bg: light-dark(#f3f1ec, #141413);
+  --panel: light-dark(#ebe8e1, #1a1a18);
+  --raised: light-dark(#fbfaf7, #22221f);
+  --hover: light-dark(#e2ded5, #2a2a26);
+  --line: light-dark(#dcd8ce, #2c2b28);
+  --line-strong: light-dark(#c8c2b6, #3a3934);
+  --text: light-dark(#1c1b19, #ece9e2);
+  --text-2: light-dark(#57534b, #a8a399);
+  --text-3: light-dark(#868176, #6f6b63);
+  --text-4: light-dark(#aea89c, #4a4842);
 
-  --mix-a: #e0a24e;
-  --mix-b: #7cc4a4;
-  --mix-c: #8eb1e0;
-  --mix-d: #d48aa4;
-  --virt: #b4a0e8;
-  --direct: #a8a399;
+  --mix-a: light-dark(#b8761c, #e0a24e);
+  --mix-b: light-dark(#2f8a63, #7cc4a4);
+  --mix-c: light-dark(#3f72b8, #8eb1e0);
+  --mix-d: light-dark(#b04f74, #d48aa4);
+  --virt: light-dark(#7158c4, #b4a0e8);
+  --direct: light-dark(#868176, #a8a399);
 
-  --warn: #e5654b;
-  --meter-lo: #6fae8a;
-  --meter-mid: #d9b45a;
-  --meter-hi: #e5654b;
-  --on-warn: #1a0d09;
-  --shadow: rgba(0, 0, 0, 0.45);
-  --backdrop: rgba(0, 0, 0, 0.45);
+  --warn: light-dark(#cf4a2e, #e5654b);
+  --meter-lo: light-dark(#3f9a68, #6fae8a);
+  --meter-mid: light-dark(#c39628, #d9b45a);
+  --meter-hi: light-dark(#d9513a, #e5654b);
+  --on-warn: light-dark(#ffffff, #1a0d09);
+  --shadow: light-dark(rgba(60, 45, 20, 0.18), rgba(0, 0, 0, 0.45));
+  --backdrop: light-dark(rgba(30, 25, 15, 0.28), rgba(0, 0, 0, 0.45));
 
   --sans: 'Pretendard Variable', Pretendard, system-ui, sans-serif;
   /* One typeface everywhere; numbers use tabular figures so they don't jitter. */
@@ -40,38 +42,6 @@
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
   font-feature-settings: 'tnum';
-}
-
-/* Light: warm paper, same hues as dark but deeper so they hold contrast on a pale ground.
-   data-theme is set by App.svelte from Settings → Theme ("auto" follows Windows). */
-:root[data-theme='light'] {
-  --bg: #f3f1ec;
-  --panel: #ebe8e1;
-  --raised: #fbfaf7;
-  --hover: #e2ded5;
-  --line: #dcd8ce;
-  --line-strong: #c8c2b6;
-  --text: #1c1b19;
-  --text-2: #57534b;
-  --text-3: #868176;
-  --text-4: #aea89c;
-
-  --mix-a: #b8761c;
-  --mix-b: #2f8a63;
-  --mix-c: #3f72b8;
-  --mix-d: #b04f74;
-  --virt: #7158c4;
-  --direct: #868176;
-
-  --warn: #cf4a2e;
-  --meter-lo: #3f9a68;
-  --meter-mid: #c39628;
-  --meter-hi: #d9513a;
-  --on-warn: #ffffff;
-  --shadow: rgba(60, 45, 20, 0.18);
-  --backdrop: rgba(30, 25, 15, 0.28);
-
-  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -107,6 +77,8 @@ input { font: inherit; color: inherit; }
   flex-direction: column;
   gap: 8px;
 }
+/* Dropdown / context menu panel (ContextMenu, PresetMenu). */
+.menu { padding: 6px; border-radius: 8px; background: var(--raised); border: 1px solid var(--line-strong); box-shadow: 0 12px 32px var(--shadow); }
 .sep { height: 1px; margin: 4px 6px; background: var(--line); }
 /* Device connection indicator in the header. */
 .conn { width: 7px; height: 7px; border-radius: 50%; background: var(--text-4); }
