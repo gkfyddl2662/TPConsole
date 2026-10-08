@@ -39,28 +39,33 @@
   const hideServices = $derived(settings?.hideServiceSessions ?? false)
   // Apps with Windows audio open but silent right now (dimmed when shown); they reappear when they play.
   const hideIdle = $derived(settings?.hideIdleSessions ?? true)
-  /** One entry per app, like the Windows volume mixer. An app can hold several sessions (processes,
-   *  devices); they become one node under its output: the per-app device, else the Windows default — or,
-   *  when it has nothing there, where it does play. Other devices it plays into get their own wire. */
+  /** One node per app per device it plays into. Several sessions of one app on one device (Chrome's
+   *  processes) are one node; the same app on two devices (Discord: sounds on the default device, voice
+   *  on the communications device) is two, each saying why it plays there (see appReason). */
   type AppView = WinSession & { members: WinSession[] }
   const appViews = $derived.by((): AppView[] => {
-    const defaultOut = endpoints.find(e => e.flow === 'render' && e.isDefault)?.id
     const groups = new Map<string, WinSession[]>()
     for (const s of app.windows.sessions) {
       if (s.flow === 'capture' || !(s.active || s.pid !== 0) || (hideServices && s.service)) continue
-      const k = s.system ? 'system' : (s.exe ?? s.name).toLowerCase()
+      const k = `${s.system ? 'system' : (s.exe ?? s.name).toLowerCase()}|${s.endpoint}`
       const g = groups.get(k)
       if (g) g.push(s); else groups.set(k, [s])
     }
     return [...groups].map(([k, members]) => {
-      const pinned = members.find(m => m.pinned)?.pinned ?? null
-      const wanted = members[0].system ? defaultOut : pinned ?? defaultOut
-      const best = members.find(m => m.active) ?? members[0]
-      const home = members.some(m => m.endpoint === wanted) ? wanted! : best.endpoint
-      const rep = members.find(m => m.endpoint === home && m.active) ?? members.find(m => m.endpoint === home) ?? best
-      return { ...rep, key: `g:${k}`, endpoint: home, pinned, active: members.some(m => m.active), members }
+      const rep = members.find(m => m.active) ?? members[0]
+      return { ...rep, key: `g:${k}`, pinned: members.find(m => m.pinned)?.pinned ?? null, active: members.some(m => m.active), members }
     }).filter(v => !(hideIdle && !v.active))
   })
+  /** Why an app plays on this device, from what Windows reports (it does not say which role a stream
+   *  was opened for): its per-app device, the default device, the communications default, or the app's
+   *  own setting. */
+  function appReason(s: WinSession): { label: string; hint: string } {
+    const ep = endpoints.find(e => e.id === s.endpoint)
+    if (s.pinned && s.pinned === s.endpoint) return { label: endpointLabel(s.pinned), hint: t('Set for this app in Windows') }
+    if (ep?.isDefault && !s.pinned) return { label: t('Default'), hint: t('Follows the Windows default device') }
+    if (ep?.isDefaultComm) return { label: t('Comm'), hint: t('Windows default communications device (voice and calls)') }
+    return { label: t('Set in app'), hint: t('Chosen in the app’s own settings, not by Windows') }
+  }
   const renderSessions = (ep: WinEndpoint | undefined) =>
     ep
       ? appViews.filter(v => v.endpoint === ep.id).sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name))
@@ -309,7 +314,7 @@
 
   const edges = $derived.by(() => {
     const out: Edge[] = []
-    // An app's wire to each device it has sessions on (usually one).
+    // Each app node's wire to the device it plays into.
     const endpointNode = (id: string) => {
       const p = pairs.find(x => x.k >= 2 && x.ep?.id === id)
       if (p) return pairNode(p.k)
@@ -318,12 +323,9 @@
       return d ? `vplay:${d.id}` : undefined
     }
     for (const v of appViews) {
-      for (const ep of new Set(v.members.map(m => m.endpoint))) {
-        const to = endpointNode(ep)
-        const on = v.members.filter(m => m.endpoint === ep)
-        if (to) out.push({ id: `a:${v.key}:${ep}`, from: `app:${v.key}`, to, color: 'var(--text-3)', width: 1.25,
-          activity: () => Math.max(0, ...on.map(m => peakPos(app.winPeaks[m.key]))), dashed: !on.some(m => m.active) })
-      }
+      const to = endpointNode(v.endpoint)
+      if (to) out.push({ id: `a:${v.key}`, from: `app:${v.key}`, to, color: 'var(--text-3)', width: 1.25,
+        activity: () => appPeak(v), dashed: !v.active })
     }
     for (const p of pairs) {
       for (const h of p.asio)
@@ -834,8 +836,10 @@
           {#if s.system}
             <span class="chip fixed">{t('Default only')}</span>
           {:else}
-            <button class="chip" class:pinned={!!s.pinned} aria-label={t('Choose where {name} plays', { name: s.name })} onclick={e => appMenu(e, s)}>
-              {s.pinned ? endpointLabel(s.pinned) : t('Default')}<span class="caret">▾</span>
+            {@const why = appReason(s)}
+            <button class="chip" class:pinned={!!s.pinned && s.pinned === s.endpoint} aria-label={t('Choose where {name} plays', { name: s.name })}
+              use:hint={() => `${why.hint} · ${t('Click to choose where it plays')}`} onclick={e => appMenu(e, s)}>
+              {why.label}<span class="caret">▾</span>
             </button>
           {/if}
         </div>

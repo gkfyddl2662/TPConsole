@@ -57,7 +57,7 @@ export function connect(h: Handlers) {
 }
 
 const ep = (id: string, name: string, e2x2: string | null, flow: 'render' | 'capture' = 'render', device = 'E2x2 OTG') =>
-  ({ id, name, e2x2, flow, device, isDefault: id === 'pb12', isDefaultComm: id === 'pb12', volume: 0.8, muted: false })
+  ({ id, name, e2x2, flow, device, isDefault: id === 'pb12', isDefaultComm: id === 'pb34', volume: 0.8, muted: false })
 const MOCK_WINDOWS: WinTopology = {
   endpoints: [
     ep('pb12', 'Playback 1/2', 'pb0'), ep('pb34', 'Playback 3/4', 'pb1'), ep('pb56', 'Playback 5/6', 'pb2'), ep('pb78', 'Playback 7/8', 'pb3'),
@@ -69,7 +69,7 @@ const MOCK_WINDOWS: WinTopology = {
     { key: 's2', endpoint: 'pb12', pid: 2, name: 'Discord', exe: 'Discord', active: true, icon: null },
     { key: 's3', endpoint: 'pb12', pid: 3, name: 'KakaoTalk', exe: 'KakaoTalk', active: false, icon: null },
     { key: 's4', endpoint: 'pb34', pid: 4, name: 'Spotify', exe: 'Spotify', active: true, icon: null },
-    // Discord's voice stream on another device (e.g. the communications default): still one Discord node.
+    // Discord's voice on the communications default device: a second Discord node there, marked "Comm".
     { key: 's7', endpoint: 'pb34', pid: 7, name: 'Discord', exe: 'Discord', active: true, icon: null },
     { key: 's8', endpoint: 'pb34', pid: 8, name: 'Google Chrome', exe: 'chrome', active: true, icon: null, pinned: 'pb34' },
     { key: 's5', endpoint: 'hdmi', pid: 5, name: 'Steam', exe: 'steamwebhelper', active: false, icon: null },
