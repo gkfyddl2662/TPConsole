@@ -217,6 +217,8 @@ export interface WinSession {
   system?: boolean
   /** Session owned by a Windows service (svchost), named after the service. */
   service?: boolean
+  /** Chromium/Electron audio-service process: the app's web sounds (notifications, media). */
+  webAudio?: boolean
   /** Endpoint the app is pinned to (Windows per-app preference); null = Windows default. */
   pinned?: string | null
   /** Session volume 0..1 and mute (the app's slider in the Windows volume mixer). */

@@ -108,7 +108,9 @@ public sealed class WindowsAudio : IDisposable
 
     // Endpoints and sessions are kept (not re-created every scan) so their change events stay registered.
     sealed record Endpoint(MMDevice Device, string Id, string Flow);
-    sealed record ProcInfo(string Name, string? Path, bool Service);
+    /// <param name="WebAudio">Chromium/Electron audio-service process: the app's web sounds (notifications,
+    /// media) play here, while e.g. Discord's voice engine plays from another process of the same app.</param>
+    sealed record ProcInfo(string Name, string? Path, bool Service, bool WebAudio);
 
     readonly Dictionary<string, Endpoint> _endpoints = [];
     readonly Dictionary<string, AudioSessionControl> _sessionMap = [];
@@ -221,7 +223,8 @@ public sealed class WindowsAudio : IDisposable
         if (_procs.TryGetValue(pid, out var known)) return known;
         var (name, path) = Describe(pid, displayName);
         bool service = path?.EndsWith("svchost.exe", StringComparison.OrdinalIgnoreCase) ?? false;
-        return _procs[pid] = new ProcInfo(name, path, service);
+        bool web = CommandLine(pid)?.Contains("--utility-sub-type=audio.mojom.AudioService", StringComparison.Ordinal) ?? false;
+        return _procs[pid] = new ProcInfo(name, path, service, web);
     }
 
     JsonObject Scan(MMDeviceEnumerator enumerator)
@@ -282,7 +285,7 @@ public sealed class WindowsAudio : IDisposable
                 bool system = s.IsSystemSoundsSession || pid == 0;
                 float vol = 1; bool muted = false;
                 try { vol = s.SimpleAudioVolume.Volume; muted = s.SimpleAudioVolume.Mute; } catch (COMException) { }
-                var info = system ? new ProcInfo("System sounds", null, false) : Proc(pid, s.DisplayName);
+                var info = system ? new ProcInfo("System sounds", null, false, false) : Proc(pid, s.DisplayName);
                 if (!system) seenPids.Add(pid);
                 string? pinned = null;
                 if (!system && flow == "render")
@@ -302,6 +305,7 @@ public sealed class WindowsAudio : IDisposable
                     ["system"] = system,
                     // Windows components (svchost) recording/playing: shown, but marked.
                     ["service"] = info.Service,
+                    ["webAudio"] = info.WebAudio,
                     ["volume"] = MathF.Round(vol, 3),
                     ["muted"] = muted,
                     // Endpoint the app is pinned to in Windows' per-app preferences; null = Windows default.
@@ -725,6 +729,30 @@ public sealed class WindowsAudio : IDisposable
     static extern nint SHGetFileInfo(string path, uint attrs, ref SHFILEINFO info, int size, uint flags);
     [DllImport("user32")] static extern bool DestroyIcon(nint h);
     [DllImport("kernel32")] static extern nint OpenProcess(uint access, bool inherit, uint pid);
+    [DllImport("ntdll")] static extern int NtQueryInformationProcess(nint h, int infoClass, nint info, int length, ref int returned);
+    [StructLayout(LayoutKind.Sequential)] struct UnicodeString { public ushort Length, MaximumLength; public nint Buffer; }
+
+    /// <summary>Another process's command line (ProcessCommandLineInformation), or null.</summary>
+    static string? CommandLine(uint pid)
+    {
+        var h = OpenProcess(0x1000 /* PROCESS_QUERY_LIMITED_INFORMATION */, false, pid);
+        if (h == 0) return null;
+        try
+        {
+            int len = 0;
+            NtQueryInformationProcess(h, 60, 0, 0, ref len); // asks for the size
+            if (len <= 0) return null;
+            var buf = Marshal.AllocHGlobal(len);
+            try
+            {
+                if (NtQueryInformationProcess(h, 60, buf, len, ref len) != 0) return null;
+                var us = Marshal.PtrToStructure<UnicodeString>(buf);
+                return Marshal.PtrToStringUni(us.Buffer, us.Length / 2);
+            }
+            finally { Marshal.FreeHGlobal(buf); }
+        }
+        finally { CloseHandle(h); }
+    }
     [DllImport("kernel32")] static extern bool CloseHandle(nint h);
     [DllImport("kernel32", CharSet = CharSet.Unicode)]
     static extern bool QueryFullProcessImageName(nint h, int flags, StringBuilder name, ref int size);

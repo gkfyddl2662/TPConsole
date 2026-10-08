@@ -83,6 +83,13 @@
     if (ep?.isDefault && !s.pinned) return { kind: 'default', label: t('Default'), hint: t('Follows the Windows default device') }
     return { kind: 'app', label: t('Set in app'), hint: t('Chosen in the app’s own settings, not by Windows') }
   }
+  /** Which audio of a Chromium/Electron program a node is, when the program plays from both kinds of
+   *  process (Discord: notifications and media from the audio service, voice from its own engine). */
+  function procKind(s: WinSession): string | undefined {
+    const same = appViews.filter(v => v.exe && v.exe === s.exe)
+    if (!same.some(v => v.webAudio) || !same.some(v => !v.webAudio)) return undefined
+    return t(s.webAudio ? 'Alerts' : 'Voice')
+  }
   const movable = (s: WinSession) => !s.system && ['pin', 'default'].includes(appReason(s).kind)
   const renderSessions = (ep: WinEndpoint | undefined) =>
     ep
@@ -863,7 +870,7 @@
       <div class="app" class:idle={!s.active} class:muted={s.muted} class:origin={drag?.from === `app:${s.key}`}
         use:node={`app:${s.key}`} use:hint={more('Chip: output device · Drag the dot onto a source or device to move the app')} oncontextmenu={e => appMenu(e, s)} role="group">
         <div class="app-top">
-          {@render appTop(s.icon, s.name)}
+          {@render appTop(s.icon, s.name, procKind(s))}
           {#if s.system}
             <span class="chip fixed">{t('Default only')}</span>
           {:else}
@@ -881,9 +888,9 @@
       </div>
     {/snippet}
 
-    {#snippet appTop(icon: string | null, name: string)}
+    {#snippet appTop(icon: string | null, name: string, kind?: string)}
       {#if icon}<img src={icon} alt="" />{:else}<span class="ini">{initials(name)}</span>{/if}
-      <span class="app-name">{name}</span>
+      <span class="app-name">{name}</span>{#if kind}<span class="app-kind">{kind}</span>{/if}
     {/snippet}
 
     <!-- An app recording from a Windows recording device (loopback or virtual). -->
@@ -1303,13 +1310,14 @@
     background: var(--panel);
     border: 1px solid var(--line);
   }
-  .app-top { display: grid; grid-template-columns: 18px 1fr auto; align-items: center; column-gap: 8px; min-height: 20px; }
+  .app-top { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto auto; align-items: center; column-gap: 8px; min-height: 20px; }
   .app img, .ini { width: 18px; height: 18px; }
   .ini {
     display: grid; place-items: center; border-radius: 4px; background: var(--raised);
     font-size: 8.5px; font-weight: 600; color: var(--text-3);
   }
   .app-name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .app-kind { flex: none; font-size: 10.5px; padding: 0 4px; border-radius: 3px; color: var(--text-2); background: var(--hover); }
   .app.idle { opacity: 0.5; }
   .app.muted .app-name { text-decoration: line-through; color: var(--text-3); }
   .app-level {
