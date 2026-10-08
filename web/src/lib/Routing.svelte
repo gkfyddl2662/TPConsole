@@ -56,9 +56,11 @@
     return [...groups].map(([k, members]) => {
       const pinned = members.find(m => m.pinned)?.pinned ?? null
       const playingOn = [...new Set(members.filter(m => m.active).map(m => m.endpoint))]
-      const wanted = pinned ?? defaultOut
+      // Silent with a per-app device: there, even if its old session sits elsewhere (Windows moves a stream
+      // only when it plays again). Silent without one: where its session is (the default if it has one there).
+      const wanted = members[0].system ? defaultOut : pinned ?? defaultOut
       const home = playingOn.includes(wanted ?? '') ? wanted! : playingOn[0]
-        ?? (members.some(m => m.endpoint === wanted) ? wanted! : members[0].endpoint)
+        ?? (pinned && !members[0].system ? pinned : members.some(m => m.endpoint === wanted) ? wanted! : members[0].endpoint)
       const rep = members.find(m => m.endpoint === home && m.active) ?? members.find(m => m.endpoint === home) ?? members[0]
       return { ...rep, key: `g:${k}`, endpoint: home, pinned, active: playingOn.length > 0, members, playingOn }
     }).filter(v => !(hideIdle && !v.active))
@@ -66,11 +68,16 @@
   /** Why an app plays on this device, from what Windows reports (it does not say which role a stream
    *  was opened for): its per-app device, the default device, the communications default, or the app's
    *  own setting. */
+  // The per-app device (set here or in Windows) covers an app's ordinary sound, not its communications
+  // streams, and Windows keeps one per program. Where both could explain a device, both are named.
   function appReason(s: WinSession): { label: string; hint: string } {
     const ep = endpoints.find(e => e.id === s.endpoint)
-    if (s.pinned && s.pinned === s.endpoint) return { label: endpointLabel(s.pinned), hint: t('Set for this app in Windows') }
+    const pinned = !!s.pinned && s.pinned === s.endpoint, comm = !!ep?.isDefaultComm
+    if (pinned && !s.active) return { label: endpointLabel(s.pinned!), hint: t('Set for this app in Windows; it plays here from its next sound') }
+    if (pinned && comm) return { label: `${endpointLabel(s.pinned!)} · ${t('Comm')}`, hint: t('Set for this app in Windows, and the Windows communications device') }
+    if (pinned) return { label: endpointLabel(s.pinned!), hint: t('Set for this app in Windows') }
+    if (comm) return { label: t('Comm'), hint: t('Windows default communications device (voice and calls)') }
     if (ep?.isDefault && !s.pinned) return { label: t('Default'), hint: t('Follows the Windows default device') }
-    if (ep?.isDefaultComm) return { label: t('Comm'), hint: t('Windows default communications device (voice and calls)') }
     return { label: t('Set in app'), hint: t('Chosen in the app’s own settings, not by Windows') }
   }
   const renderSessions = (ep: WinEndpoint | undefined) =>
@@ -707,7 +714,7 @@
   function appMenu(e: MouseEvent, s: WinSession) {
     const items: Item[] = []
     if (!s.system && s.flow !== 'capture') {
-      items.push({ section: t('Output device') }, { label: t('Windows default'), checked: !s.pinned, action: () => moveApp(s, null) })
+      items.push({ section: t('Output device · whole app') }, { label: t('Windows default'), checked: !s.pinned, action: () => moveApp(s, null) })
       for (const ep of endpoints.filter(x => x.flow === 'render'))
         items.push({ label: endpointLabel(ep.id), sub: ep.e2x2 ? ep.name : ep.device, checked: s.pinned === ep.id, action: () => moveApp(s, ep.id) })
       items.push({ separator: true })
