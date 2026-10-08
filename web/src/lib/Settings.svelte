@@ -213,6 +213,10 @@
       <span class="v">
         {u.current}
         {#if u.available}<span class="new">{t('{v} ready', { v: u.available })}{#if u.failed} · {t('last install failed')}{/if}</span>{/if}
+        {#if u.installed}
+          <button class="btn" onclick={() => updateApp('check')}>{t('Check now')}</button>
+          {#if u.available}<button class="btn" disabled={u.updating} onclick={() => updateApp('apply')}>{u.updating ? t('Downloading…') : t('Update and restart')}</button>{/if}
+        {/if}
       </span>
     </div>
     {#if !u.installed}
@@ -220,12 +224,6 @@
     {:else}
       {@render boolRow('autoUpdate', true, t('Update automatically'),
         t('Checks GitHub hourly; installs a newer release and restarts TPConsole. Waits while you are using its window.'))}
-      <div class="row"><span></span>
-        <span class="btns">
-          <button class="btn" onclick={() => updateApp('check')}>{t('Check now')}</button>
-          {#if u.available}<button class="btn" disabled={u.updating} onclick={() => updateApp('apply')}>{u.updating ? t('Downloading…') : t('Update and restart')}</button>{/if}
-        </span>
-      </div>
     {/if}
     {#if u.error}<p class="note pad">{t('Could not check for updates')}: {u.error}</p>{/if}
     {#if app.result?.op === 'update' && !app.result.ok}<p class="err">{app.result.message}</p>{/if}
@@ -381,7 +379,7 @@
     <div class="row">
       {@render key(t('Keep the E2x2 up to date for use without a PC'), (settings.autoStoreOnDevice ?? true) !== true,
         () => setSetting('autoStoreOnDevice', true),
-        app.status.storedUpToDate ? t('The E2x2 has the current setup.') : t('Saved to the E2x2 a few seconds after the last change, and when TPConsole closes.'))}
+        app.status.storedUpToDate ? t('The E2x2 has the current setup.') : t('Saved to the E2x2 when TPConsole closes (like Control Center), or now with Save now.'))}
       <span class="v">
         {#if !app.status.storedUpToDate}<button class="btn ghost" onclick={storeOnDevice}>{t('Save now')}</button>{/if}
         {@render toggle(settings.autoStoreOnDevice ?? true, v => setSetting('autoStoreOnDevice', v), t('Keep the E2x2 up to date for use without a PC'))}

@@ -188,23 +188,15 @@ public sealed class Engine : IDisposable
             {
                 // Saved even when the device write fails: the profile already holds the change.
                 ScheduleSave();
-                ScheduleStore();
             }
         }
         Changed?.Invoke();
     }
 
-    // ---- device memory: written 5 s after the last change (a fader drag is many changes), and on exit -------
-    Timer? _storeTimer;
+    // ---- device memory (HID 11.05, flash): written only when TPConsole closes, like Control Center. Storing
+    // after every change (5 s later) is the suspect when an E2x2 drops sound with USB errors a moment after an edit.
     string MixerHash => Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(JsonSerializer.SerializeToUtf8Bytes(Profile.Mixer, Json)));
     public bool StoredUpToDate => Profile.StoredMixer == MixerHash;
-
-    void ScheduleStore()
-    {
-        if (!Profile.Settings.AutoStoreOnDevice) return;
-        _storeTimer ??= new Timer(_ => StoreIfChanged());
-        _storeTimer.Change(TimeSpan.FromSeconds(5), Timeout.InfiniteTimeSpan);
-    }
 
     /// <summary>
     /// Re-sends everything and re-stores it on the device. Used after TOPPING Control Center ran: it
@@ -219,7 +211,6 @@ public sealed class Engine : IDisposable
             _sent.Clear();
             Push(full: true);
             Profile.StoredMixer = null; // the device memory now holds Control Center's setup
-            ScheduleStore();
         }
         Changed?.Invoke();
     }
@@ -278,6 +269,7 @@ public sealed class Engine : IDisposable
             catch (IOException) { return false; }
             Profile.StoredMixer = MixerHash;
             ScheduleSave();
+            Log("setup stored in the E2x2's memory");
             return true;
         }
     }
@@ -473,7 +465,6 @@ public sealed class Engine : IDisposable
     {
         // Like Control Center on exit: the device keeps the current setup for use without a PC.
         if (!_readOnly && Profile.Settings.AutoStoreOnDevice) StoreIfChanged();
-        _storeTimer?.Dispose();
         _cts.Cancel();
         _saveTimer?.Dispose();
         if (!_readOnly) Save();

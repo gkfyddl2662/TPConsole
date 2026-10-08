@@ -286,7 +286,7 @@ const ko: Record<string, string> = {
     'TOPPING Control Center도 Windows 시작 시 켜지고, 켜져 있는 동안 TPConsole은 기다립니다. 작업 관리자 → 시작 앱에서 끄세요.',
   'Keep the E2x2 up to date for use without a PC': 'PC 없이 쓸 때도 지금 설정 유지',
   'The E2x2 has the current setup.': 'E2x2에 지금 설정이 저장되어 있습니다.',
-  'Saved to the E2x2 a few seconds after the last change, and when TPConsole closes.': '마지막 변경 몇 초 뒤와 TPConsole을 닫을 때 E2x2에 저장합니다.',
+  'Saved to the E2x2 when TPConsole closes (like Control Center), or now with Save now.': 'TPConsole을 끌 때(Control Center와 같음) 또는 "지금 저장"을 누를 때 E2x2에 저장합니다.',
   'Save now': '지금 저장',
   'Sources connected to this mix — show / hide their levels': '이 믹스에 연결된 소스 — 레벨 보이기/숨기기',
   '{n} sources': '소스 {n}개',
