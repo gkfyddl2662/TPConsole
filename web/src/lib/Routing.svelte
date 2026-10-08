@@ -723,11 +723,10 @@
         { label: t('Chosen inside {name}: change it in its own audio settings', { name: s.name }), disabled: true, action: () => {} },
         { separator: true })
     } else if (kind === 'comm') {
-      // Moves every app's voice/calls, not just this one: say so in the heading.
-      items.push({ section: t('Windows communications device · all apps') })
-      for (const ep of endpoints.filter(x => x.flow === 'render'))
-        items.push({ label: endpointLabel(ep.id), sub: ep.e2x2 ? ep.name : ep.device, checked: ep.isDefaultComm, action: () => setDefaultDevice(ep.id, true) })
-      items.push({ separator: true })
+      // The communications device is set per device (Playback node menu), not per app.
+      items.push({ section: t('Output device') },
+        { label: t('Follows the Windows communications device: change it on a Playback node (right-click)'), disabled: true, action: () => {} },
+        { separator: true })
     } else if (kind) {
       items.push({ section: t('Output device · whole app') }, { label: t('Windows default'), checked: !s.pinned, action: () => moveApp(s, null) })
       for (const ep of endpoints.filter(x => x.flow === 'render'))

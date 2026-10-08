@@ -216,7 +216,7 @@ const ko: Record<string, string> = {
   'Update automatically': '자동 업데이트',
   'Set in app': '앱에서 설정',
   'Chosen inside {name}: change it in its own audio settings': '{name} 안에서 고른 장치입니다. {name}의 오디오 설정에서 바꾸세요',
-  'Windows communications device · all apps': 'Windows 통신 장치 · 모든 앱의 음성 채팅',
+  'Follows the Windows communications device: change it on a Playback node (right-click)': 'Windows 통신 장치를 따릅니다. 바꾸려면 Playback 노드를 우클릭하세요',
   'Output device · whole app': '출력 장치 · 앱 전체에 적용',
   'Set for this app in Windows; it plays here from its next sound': 'Windows에서 이 앱의 장치로 지정함. 다음 소리부터 여기로 나옴',
   'Set for this app in Windows, and the Windows communications device': 'Windows에서 이 앱의 장치로 지정했고, Windows 통신 장치이기도 함',
