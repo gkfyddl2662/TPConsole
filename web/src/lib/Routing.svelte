@@ -39,12 +39,40 @@
   const hideServices = $derived(settings?.hideServiceSessions ?? false)
   // Apps with Windows audio open but silent right now (dimmed when shown); they reappear when they play.
   const hideIdle = $derived(settings?.hideIdleSessions ?? true)
+  /** One entry per app, like the Windows volume mixer. An app can hold several sessions (processes,
+   *  devices); they become one node under its output: the per-app device, else the Windows default — or,
+   *  when it has nothing there, where it does play. Other devices it plays into get their own wire. */
+  type AppView = WinSession & { members: WinSession[] }
+  const appViews = $derived.by((): AppView[] => {
+    const defaultOut = endpoints.find(e => e.flow === 'render' && e.isDefault)?.id
+    const groups = new Map<string, WinSession[]>()
+    for (const s of app.windows.sessions) {
+      if (s.flow === 'capture' || !(s.active || s.pid !== 0) || (hideServices && s.service)) continue
+      const k = s.system ? 'system' : (s.exe ?? s.name).toLowerCase()
+      const g = groups.get(k)
+      if (g) g.push(s); else groups.set(k, [s])
+    }
+    return [...groups].map(([k, members]) => {
+      const pinned = members.find(m => m.pinned)?.pinned ?? null
+      const wanted = members[0].system ? defaultOut : pinned ?? defaultOut
+      const best = members.find(m => m.active) ?? members[0]
+      const home = members.some(m => m.endpoint === wanted) ? wanted! : best.endpoint
+      const rep = members.find(m => m.endpoint === home && m.active) ?? members.find(m => m.endpoint === home) ?? best
+      return { ...rep, key: `g:${k}`, endpoint: home, pinned, active: members.some(m => m.active), members }
+    }).filter(v => !(hideIdle && !v.active))
+  })
   const renderSessions = (ep: WinEndpoint | undefined) =>
     ep
-      ? app.windows.sessions
-          .filter(s => s.endpoint === ep.id && s.flow !== 'capture' && (s.active || s.pid !== 0) && !(hideServices && s.service) && !(hideIdle && !s.active))
-          .sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name))
+      ? appViews.filter(v => v.endpoint === ep.id).sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name))
       : []
+  const viewOf = (node: string) => appViews.find(v => `app:${v.key}` === node)
+  const membersOf = (s: WinSession) => (s as AppView).members ?? [s]
+  const appPeak = (s: WinSession) => Math.max(0, ...membersOf(s).map(m => peakPos(app.winPeaks[m.key])))
+  /** Volume / mute for the whole app (every session), like the Windows volume mixer slider. */
+  const setAppLevel = (s: WinSession, volume?: number, mute?: boolean) => membersOf(s).forEach(m => setAppVolume(m.key, volume, mute))
+  /** Output device for the whole app (each of its processes). */
+  const moveApp = (s: WinSession, endpoint: string | null) =>
+    [...new Set(membersOf(s).map(m => m.pid))].forEach(pid => setAppDevice(pid, endpoint))
 
   // ---- ASIO hosts (invisible to Windows): placed by auto-detection or the menu -------------
   const asio = $derived(app.windows.asio ?? null)
@@ -281,17 +309,27 @@
 
   const edges = $derived.by(() => {
     const out: Edge[] = []
-    const appEdge = (s: WinSession, to: string) => out.push({
-      id: `a:${s.key}`, from: `app:${s.key}`, to, color: 'var(--text-3)', width: 1.25,
-      activity: () => peakPos(app.winPeaks[s.key]), dashed: !s.active,
-    })
+    // An app's wire to each device it has sessions on (usually one).
+    const endpointNode = (id: string) => {
+      const p = pairs.find(x => x.k >= 2 && x.ep?.id === id)
+      if (p) return pairNode(p.k)
+      if (others.some(o => o.ep.id === id)) return `dev:${id}`
+      const d = vplays.find(x => vEndpoint(x)?.id === id)
+      return d ? `vplay:${d.id}` : undefined
+    }
+    for (const v of appViews) {
+      for (const ep of new Set(v.members.map(m => m.endpoint))) {
+        const to = endpointNode(ep)
+        const on = v.members.filter(m => m.endpoint === ep)
+        if (to) out.push({ id: `a:${v.key}:${ep}`, from: `app:${v.key}`, to, color: 'var(--text-3)', width: 1.25,
+          activity: () => Math.max(0, ...on.map(m => peakPos(app.winPeaks[m.key]))), dashed: !on.some(m => m.active) })
+      }
+    }
     for (const p of pairs) {
-      for (const s of p.apps) appEdge(s, pairNode(p.k))
       for (const h of p.asio)
         out.push({ id: `asio:${h.pid}`, from: `asio:${h.pid}`, to: pairNode(p.k), color: 'var(--text-3)', width: 1.25,
           activity: () => peakPos(app.winPeaks[`drv:pb${p.k - 2}`]) })
     }
-    for (const o of others) for (const s of o.apps) appEdge(s, `dev:${o.ep.id}`)
     for (const row of rows) {
       for (let m = 0; m < MIXES.length; m++) {
         const ch = mixer.mixes[m].channel[row.channels[0]]
@@ -324,7 +362,6 @@
       if (from && to) out.push({ id: `v:${r.from}>${r.to}`, from, to, color: 'var(--virt)', width: 1.5, dashed: pendingV, vroute: r,
         activity: () => r.from.startsWith('v:') ? peakPos(app.winPeaks[vEndpoint(vdevs.find(d => `v:${d.id}` === r.from)!)?.id ?? '']) : 0 })
     }
-    for (const d of vplays) for (const s of renderSessions(vEndpoint(d))) appEdge(s, `vplay:${d.id}`)
     for (const d of vrecs)
       for (const s of recorders(`v:${d.id}`))
         out.push({ id: `r:${s.key}`, from: `vrec:${d.id}`, to: `rec:${s.key}`, color: 'var(--text-3)', width: 1.25,
@@ -525,12 +562,12 @@
       return
     }
     if (from.startsWith('app:')) {
-      const s = app.windows.sessions.find(x => `app:${x.key}` === from)
+      const s = viewOf(from)
       const ep = to.startsWith('dev:')
         ? endpoints.find(e => `dev:${e.id}` === to)
         : to.startsWith('vplay:') ? vEndpoint(vdevs.find(d => `vplay:${d.id}` === to)!)
         : byRole(`pb${rows.find(r => `src:${r.key}` === to)?.playback}`)
-      if (s && ep) setAppDevice(s.pid, ep.id)
+      if (s && ep) moveApp(s, ep.id)
     } else if (from.startsWith('src:') && to.startsWith('mix:')) {
       const row = rows.find(r => `src:${r.key}` === from)!
       const m = Number(to.slice(4))
@@ -562,8 +599,8 @@
       muteOut(edge.output, true)
     } else if (edge.from.startsWith('app:')) {
       // An app always plays somewhere; "disconnect" returns it to the Windows default.
-      const s = app.windows.sessions.find(x => `app:${x.key}` === edge.from)
-      if (s?.pinned) setAppDevice(s.pid, null)
+      const s = viewOf(edge.from)
+      if (s?.pinned) moveApp(s, null)
     } else if (edge.from.startsWith('asio:')) {
       const h = asio?.hosts.find(x => `asio:${x.pid}` === edge.from)
       // -1 = cleared by the user: not auto-detected again until assigned from the menu.
@@ -658,12 +695,12 @@
   function appMenu(e: MouseEvent, s: WinSession) {
     const items: Item[] = []
     if (!s.system && s.flow !== 'capture') {
-      items.push({ section: t('Output device') }, { label: t('Windows default'), checked: !s.pinned, action: () => setAppDevice(s.pid, null) })
+      items.push({ section: t('Output device') }, { label: t('Windows default'), checked: !s.pinned, action: () => moveApp(s, null) })
       for (const ep of endpoints.filter(x => x.flow === 'render'))
-        items.push({ label: endpointLabel(ep.id), sub: ep.e2x2 ? ep.name : ep.device, checked: s.pinned === ep.id, action: () => setAppDevice(s.pid, ep.id) })
+        items.push({ label: endpointLabel(ep.id), sub: ep.e2x2 ? ep.name : ep.device, checked: s.pinned === ep.id, action: () => moveApp(s, ep.id) })
       items.push({ separator: true })
     }
-    items.push({ label: t(s.muted ? 'Unmute' : 'Mute'), action: () => setAppVolume(s.key, undefined, !s.muted) })
+    items.push({ label: t(s.muted ? 'Unmute' : 'Mute'), action: () => setAppLevel(s, undefined, !s.muted) })
     openCtx(e, s.name, items)
   }
 
@@ -803,8 +840,8 @@
           {/if}
         </div>
         <Fader compact volume value={s.volume}
-          label={t('Volume')} dim={s.muted} onchange={v => setAppVolume(s.key, v ?? 0)} />
-        <span class="app-level" style:--p={peakPos(app.winPeaks[s.key])}></span>
+          label={t('Volume')} dim={s.muted} onchange={v => setAppLevel(s, v ?? 0)} />
+        <span class="app-level" style:--p={appPeak(s)}></span>
         {#if !s.system}{@render outDot(`app:${s.key}`, 'app', `Move ${s.name}`)}{/if}
       </div>
     {/snippet}

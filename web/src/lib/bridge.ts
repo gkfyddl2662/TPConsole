@@ -69,6 +69,9 @@ const MOCK_WINDOWS: WinTopology = {
     { key: 's2', endpoint: 'pb12', pid: 2, name: 'Discord', exe: 'Discord', active: true, icon: null },
     { key: 's3', endpoint: 'pb12', pid: 3, name: 'KakaoTalk', exe: 'KakaoTalk', active: false, icon: null },
     { key: 's4', endpoint: 'pb34', pid: 4, name: 'Spotify', exe: 'Spotify', active: true, icon: null },
+    // Discord's voice stream on another device (e.g. the communications default): still one Discord node.
+    { key: 's7', endpoint: 'pb34', pid: 7, name: 'Discord', exe: 'Discord', active: true, icon: null },
+    { key: 's8', endpoint: 'pb34', pid: 8, name: 'Google Chrome', exe: 'chrome', active: true, icon: null, pinned: 'pb34' },
     { key: 's5', endpoint: 'hdmi', pid: 5, name: 'Steam', exe: 'steamwebhelper', active: false, icon: null },
     { key: 'r1', endpoint: 'lb12', flow: 'capture', pid: 2, name: 'Discord', exe: 'Discord', active: true, icon: null },
     { key: 'r2', endpoint: 'an12', flow: 'capture', pid: 6, name: 'OBS Studio', exe: 'obs64', active: true, icon: null },
