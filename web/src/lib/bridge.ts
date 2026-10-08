@@ -285,8 +285,7 @@ function mockPatch({ path, value }: Change) {
 }
 
 function startMockMeters(onMeters: Handlers['meters']) {
-  const keys = ['21.04', '22.04', '23.04', '24.04', '31.02', '32.02', '33.02', '34.02',
-    '41.01', '42.01', '43.01', '44.01', '45.01', '46.01', '47.01', '48.01', '51.02', '52.02', '5A.02', '5B.02']
+  const keys = ['21.04', '22.04', '23.04', '24.04', '41.01', '42.01', '43.01', '44.01', '45.01', '46.01', '47.01', '48.01']
   const level: Record<string, number> = Object.fromEntries(keys.map(k => [k, -400]))
   setInterval(() => {
     const t = performance.now() / 1000

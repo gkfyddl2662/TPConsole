@@ -217,12 +217,6 @@ public sealed class Engine : IDisposable
         Changed?.Invoke();
     }
 
-    public void StoreIfChanged()
-    {
-        if (StoredUpToDate) return;
-        if (StoreOnDevice()) Changed?.Invoke();
-    }
-
     static Mixer Clone(Mixer m) => JsonSerializer.Deserialize<Mixer>(JsonSerializer.Serialize(m, Json), Json)!;
 
     /// <summary>Saves the current mixer under a name (overwrites a preset with that name).</summary>
@@ -466,7 +460,7 @@ public sealed class Engine : IDisposable
     public void Dispose()
     {
         // Like Control Center on exit: the device keeps the current setup for use without a PC.
-        if (!_readOnly && Profile.Settings.AutoStoreOnDevice) StoreIfChanged();
+        if (!_readOnly && Profile.Settings.AutoStoreOnDevice && !StoredUpToDate) StoreOnDevice();
         _cts.Cancel();
         _saveTimer?.Dispose();
         if (!_readOnly) Save();

@@ -11,7 +11,6 @@ namespace TPConsole.App;
 /// <summary>
 /// Thesycon's DSP mixer plugin (tusbaudiodsp_mixer.sys): an upper filter on the E2x2's USB audio
 /// device. With it the driver's virtual channels carry sound and can be routed (Device Parameters\Plugin).
-/// The plugin is bundled (Plugin\tusbaudiodsp_mixer.sys, from another vendor's signed package) and must match the driver release.
 ///
 /// Driver side (static analysis): the function driver loads the plugin
 /// when Config\EnablePlugin != 0 and its license has the DSP-plugin feature bit (this PC: set),
