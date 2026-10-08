@@ -215,6 +215,8 @@ const ko: Record<string, string> = {
   'This copy is not the installed one (development build), so it does not update itself.': '설치된 앱이 아니라(개발용 실행) 스스로 업데이트하지 않습니다.',
   'Update automatically': '자동 업데이트',
   'Set in app': '앱에서 설정',
+  'Chosen inside {name}: change it in its own audio settings': '{name} 안에서 고른 장치입니다. {name}의 오디오 설정에서 바꾸세요',
+  'Windows communications device · all apps': 'Windows 통신 장치 · 모든 앱의 음성 채팅',
   'Output device · whole app': '출력 장치 · 앱 전체에 적용',
   'Set for this app in Windows; it plays here from its next sound': 'Windows에서 이 앱의 장치로 지정함. 다음 소리부터 여기로 나옴',
   'Set for this app in Windows, and the Windows communications device': 'Windows에서 이 앱의 장치로 지정했고, Windows 통신 장치이기도 함',

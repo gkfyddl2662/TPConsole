@@ -70,16 +70,20 @@
    *  own setting. */
   // The per-app device (set here or in Windows) covers an app's ordinary sound, not its communications
   // streams, and Windows keeps one per program. Where both could explain a device, both are named.
-  function appReason(s: WinSession): { label: string; hint: string } {
+  // "comm" and "app" streams don't follow the per-app device, so they can't be moved from here: a comm
+  // stream moves with the Windows communications device, an app's own choice only inside the app.
+  type Reason = { label: string; hint: string; kind: 'pin' | 'comm' | 'default' | 'app' }
+  function appReason(s: WinSession): Reason {
     const ep = endpoints.find(e => e.id === s.endpoint)
     const pinned = !!s.pinned && s.pinned === s.endpoint, comm = !!ep?.isDefaultComm
-    if (pinned && !s.active) return { label: endpointLabel(s.pinned!), hint: t('Set for this app in Windows; it plays here from its next sound') }
-    if (pinned && comm) return { label: `${endpointLabel(s.pinned!)} · ${t('Comm')}`, hint: t('Set for this app in Windows, and the Windows communications device') }
-    if (pinned) return { label: endpointLabel(s.pinned!), hint: t('Set for this app in Windows') }
-    if (comm) return { label: t('Comm'), hint: t('Windows default communications device (voice and calls)') }
-    if (ep?.isDefault && !s.pinned) return { label: t('Default'), hint: t('Follows the Windows default device') }
-    return { label: t('Set in app'), hint: t('Chosen in the app’s own settings, not by Windows') }
+    if (pinned && !s.active) return { kind: 'pin', label: endpointLabel(s.pinned!), hint: t('Set for this app in Windows; it plays here from its next sound') }
+    if (pinned && comm) return { kind: 'pin', label: `${endpointLabel(s.pinned!)} · ${t('Comm')}`, hint: t('Set for this app in Windows, and the Windows communications device') }
+    if (pinned) return { kind: 'pin', label: endpointLabel(s.pinned!), hint: t('Set for this app in Windows') }
+    if (comm) return { kind: 'comm', label: t('Comm'), hint: t('Windows default communications device (voice and calls)') }
+    if (ep?.isDefault && !s.pinned) return { kind: 'default', label: t('Default'), hint: t('Follows the Windows default device') }
+    return { kind: 'app', label: t('Set in app'), hint: t('Chosen in the app’s own settings, not by Windows') }
   }
+  const movable = (s: WinSession) => !s.system && ['pin', 'default'].includes(appReason(s).kind)
   const renderSessions = (ep: WinEndpoint | undefined) =>
     ep
       ? appViews.filter(v => v.endpoint === ep.id).sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name))
@@ -713,7 +717,18 @@
 
   function appMenu(e: MouseEvent, s: WinSession) {
     const items: Item[] = []
-    if (!s.system && s.flow !== 'capture') {
+    const kind = s.flow === 'capture' || s.system ? undefined : appReason(s).kind
+    if (kind === 'app') {
+      items.push({ section: t('Output device') },
+        { label: t('Chosen inside {name}: change it in its own audio settings', { name: s.name }), disabled: true, action: () => {} },
+        { separator: true })
+    } else if (kind === 'comm') {
+      // Moves every app's voice/calls, not just this one: say so in the heading.
+      items.push({ section: t('Windows communications device · all apps') })
+      for (const ep of endpoints.filter(x => x.flow === 'render'))
+        items.push({ label: endpointLabel(ep.id), sub: ep.e2x2 ? ep.name : ep.device, checked: ep.isDefaultComm, action: () => setDefaultDevice(ep.id, true) })
+      items.push({ separator: true })
+    } else if (kind) {
       items.push({ section: t('Output device · whole app') }, { label: t('Windows default'), checked: !s.pinned, action: () => moveApp(s, null) })
       for (const ep of endpoints.filter(x => x.flow === 'render'))
         items.push({ label: endpointLabel(ep.id), sub: ep.e2x2 ? ep.name : ep.device, checked: s.pinned === ep.id, action: () => moveApp(s, ep.id) })
@@ -863,7 +878,7 @@
         <Fader compact volume value={s.volume}
           label={t('Volume')} dim={s.muted} onchange={v => setAppLevel(s, v ?? 0)} />
         <span class="app-level" style:--p={appPeak(s)}></span>
-        {#if !s.system}{@render outDot(`app:${s.key}`, 'app', `Move ${s.name}`)}{/if}
+        {#if movable(s)}{@render outDot(`app:${s.key}`, 'app', `Move ${s.name}`)}{/if}
       </div>
     {/snippet}
 
