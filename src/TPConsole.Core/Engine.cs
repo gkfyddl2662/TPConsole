@@ -479,7 +479,7 @@ public static class Meters
     {
         { Sub: 0x04 } when p.Addr is >= 0x21 and <= 0x24 => true,
         { Sub: 0x01 or 0x02 } when p.Addr is >= 0x31 and <= 0x34 => true,
-        { Sub: 0x01 } when p.Addr is >= 0x41 and <= 0x48 => true,
+        { Sub: 0x01 } when p.Addr is >= 0x41 and <= 0x48 => true, // Playback 1..8 (not the mixes: the E2x2 does not meter those)
         { Sub: 0x01 or 0x02 } when p.Addr is >= 0x51 and <= 0x56 => true,
         { Sub: 0x02 } when p.Addr is 0x5A or 0x5B => true,
         _ => false,

@@ -115,5 +115,23 @@ export function outOff(k: OutputKey) {
 export const muteOut = (k: OutputKey, on: boolean) =>
   set({ path: `mixer.${k}.muteL`, value: on }, { path: `mixer.${k}.muteR`, value: on })
 
-/** Device meters (dB x 10) of MIX m, left and right. */
-export const mixMeters = (m: number) => [app.meters[`4${1 + 2 * m}.01`], app.meters[`4${2 + 2 * m}.01`]]
+/** Device meter of each mixer channel's source: IN 1, IN 2, Mobile IN L/R, then Playback 1..8.
+ *  41..48.01 are the E2x2's playback meters (they follow the Windows stream, not a mix). */
+const CHANNEL_METER = ['21.04', '23.04', '22.04', '24.04', '41.01', '42.01', '43.01', '44.01', '45.01', '46.01', '47.01', '48.01']
+
+/** Level of MIX m, left and right, in the device's meter units (dB x 10). The E2x2 does not meter its
+ *  mixes, so this adds up the connected sources at their send level and pan (power sum), like the wires. */
+export function mixMeters(m: number): (number | undefined)[] {
+  const mix = app.profile?.mixer.mixes[m]
+  if (!mix) return [undefined, undefined]
+  const anySolo = mix.channel.some(c => c.solo)
+  const power = [0, 0]
+  mix.channel.forEach((c, i) => {
+    const src = app.meters[CHANNEL_METER[i]]
+    if (c.mute || (anySolo && !c.solo) || c.levelDb === null || src === undefined) return
+    const p = 10 ** ((src / 10 + c.levelDb) / 10)
+    power[0] += p * ((100 - c.pan) / 100) ** 2
+    power[1] += p * (c.pan / 100) ** 2
+  })
+  return power.map(p => (p > 0 ? Math.round(100 * Math.log10(p)) : undefined))
+}
