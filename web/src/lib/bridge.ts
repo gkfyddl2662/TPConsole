@@ -166,6 +166,12 @@ export function shareLog(action: 'copy' | 'folder') {
   else mock?.result('shareLog', true)
 }
 
+/** Ends TOPPING Control Center (TPConsole stays out of the way while it runs). */
+export function closeControlCenter() {
+  if (webview) webview.postMessage({ op: 'closeControlCenter' })
+  else { MOCK_STATUS.controlCenterRunning = false; pushState() }
+}
+
 export function resetStats() {
   if (webview) webview.postMessage({ op: 'resetStats' })
 }

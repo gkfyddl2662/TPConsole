@@ -434,6 +434,9 @@ public sealed class WindowsAudio : IDisposable
     // ---- stream health: totals plus the increase over the last minute ----------------------
     volatile JsonObject? _stats;
     readonly Queue<(DateTime At, long Dropouts, long Errors)> _statHistory = new();
+    /// <summary>Gets a line whenever the driver counts new USB errors or dropouts (for engine.log).</summary>
+    public Action<string>? StatsLog;
+    (long Dropouts, long Errors)? _lastStats;
 
     void StatsLoop()
     {
@@ -448,6 +451,9 @@ public sealed class WindowsAudio : IDisposable
                 _statHistory.Enqueue((now, s.Dropouts, s.UsbErrors));
                 while (_statHistory.Count > 0 && now - _statHistory.Peek().At > TimeSpan.FromSeconds(65)) _statHistory.Dequeue();
                 var first = _statHistory.Peek();
+                if (_lastStats is { } last && (s.UsbErrors > last.Errors || s.Dropouts > last.Dropouts))
+                    StatsLog?.Invoke($"driver: +{s.UsbErrors - last.Errors} USB errors, +{s.Dropouts - last.Dropouts} dropouts");
+                _lastStats = (s.Dropouts, s.UsbErrors);
                 _stats = new JsonObject
                 {
                     ["dropouts"] = s.Dropouts, ["usbErrors"] = s.UsbErrors,
@@ -461,7 +467,7 @@ public sealed class WindowsAudio : IDisposable
 
     public void ResetStats()
     {
-        try { using var d = DriverClient.Open(); d.Statistics(reset: true); _statHistory.Clear(); } catch (Exception) { }
+        try { using var d = DriverClient.Open(); d.Statistics(reset: true); _statHistory.Clear(); _lastStats = null; } catch (Exception) { }
     }
 
     public string? SetAsioBuffer(uint size, bool safeMode)

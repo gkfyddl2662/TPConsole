@@ -1,6 +1,6 @@
 <script lang="ts">
   import { app, set, undo, redo, history } from './lib/store.svelte'
-  import { isMock, isDemo, setMini } from './lib/bridge'
+  import { isMock, isDemo, setMini, closeControlCenter } from './lib/bridge'
   import Mini from './lib/Mini.svelte'
   import { t, lang } from './lib/i18n.svelte'
   import { hint, hintState } from './lib/hint.svelte'
@@ -70,11 +70,6 @@
     </nav>
 
     <div class="right">
-      {#if app.status.controlCenterRunning}
-        <span class="chip warn" use:hint={() => t('Both apps write to the device; the last write wins.')}>
-          {t('TOPPING Control Center is controlling the E2x2 — TPConsole puts its setup back when it closes')}
-        </span>
-      {/if}
       <button class="minib" onclick={() => toggleMini(true)} use:hint={() => t('Mini mode: a small window with presets, volumes and meters')}>▭</button>
       <div class="blend" use:hint={() => t('Front-panel Input / Playback knob (read-only)')}>
         <span class="label">{t('Input')}</span>
@@ -101,6 +96,19 @@
   </footer>
 
   <Dialog />
+
+  {#if app.status.controlCenterRunning}
+    <!-- Two apps driving one device fight each other: TPConsole waits until Control Center is gone. -->
+    <div class="ccblock" role="alertdialog" aria-label={t('TOPPING Control Center is running')}>
+      <div class="cccard">
+        <h3>{t('TOPPING Control Center is running')}</h3>
+        <p>{t('Both apps would change the E2x2 at the same time, so TPConsole leaves it alone while Control Center is open. Close Control Center to continue — your setup is sent back right away.')}</p>
+        {#if app.status.controlCenterAutostart}<p class="dim">{t('Control Center also starts with Windows. Turn that off in Task Manager → Startup apps.')}</p>{/if}
+        <button onclick={closeControlCenter}>{t('Close Control Center')}</button>
+        {#if app.result?.op === 'closeControlCenter' && !app.result.ok}<p class="err">{app.result.message}</p>{/if}
+      </div>
+    </div>
+  {/if}
 
   {#if app.profile && !tipsSeen}
     <div class="tips" role="dialog" aria-label={t('Getting around')}>
@@ -148,7 +156,13 @@
     border-radius: 3px;
     padding: 2px 7px;
   }
-  .chip.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+  .ccblock { position: absolute; inset: 44px 0 0; z-index: 20; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(2px); }
+  .cccard { width: 440px; max-width: calc(100% - 32px); padding: 22px 24px; border-radius: 10px; background: var(--raised); border: 1px solid var(--line-strong); box-shadow: 0 20px 50px var(--shadow); }
+  .cccard h3 { margin: 0 0 10px; font-size: 15px; }
+  .cccard p { margin: 0 0 12px; color: var(--text-2); line-height: 1.5; }
+  .cccard .dim { color: var(--text-3); font-size: 12px; }
+  .cccard .err { color: var(--warn); font-size: 12px; margin: 10px 0 0; }
+  .cccard button { height: 32px; padding: 0 16px; border-radius: 6px; background: var(--text); color: var(--bg); font-size: 13px; font-weight: 500; }
   .blend { display: flex; align-items: center; gap: 8px; }
   .blend-track { position: relative; width: 84px; height: 3px; border-radius: 2px; background: var(--line-strong); }
   .blend-pos {

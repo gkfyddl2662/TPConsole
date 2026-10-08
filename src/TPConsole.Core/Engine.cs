@@ -150,9 +150,11 @@ public sealed class Engine : IDisposable
     readonly bool _readOnly;
 
     /// <param name="readOnly">For diagnostics (CLI): never stores to the device's flash (11.05) or rewrites profile.json on exit.</param>
-    public Engine(bool readOnly = false)
+    /// <param name="paused">Start without opening the device (TOPPING Control Center owns it); see <see cref="Pause"/>.</param>
+    public Engine(bool readOnly = false, bool paused = false)
     {
         _readOnly = readOnly;
+        _paused = paused;
         var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         // The app used to be called ToppingCtl: its settings, backups and logs move over once.
         string legacy = Path.Combine(appData, "ToppingCtl"), dir = Path.Combine(appData, "TPConsole");
@@ -211,6 +213,7 @@ public sealed class Engine : IDisposable
     public void Resync()
     {
         Log("Control Center closed: our setup sent again");
+        Pause(false);
         lock (_lock)
         {
             _sent.Clear();
@@ -386,6 +389,7 @@ public sealed class Engine : IDisposable
                     _sent.Clear();
                     Push(full: true);
                 }
+                Log("E2x2 connected: full setup sent");
                 Changed?.Invoke();
                 // "Connect" request: the device answers with its settings and versions. Repeat until it does.
                 for (int i = 0; i < 5 && Device.SoftwareVersion is null && !reader.IsCompleted; i++)
@@ -399,6 +403,7 @@ public sealed class Engine : IDisposable
             catch (Exception e) when (e is IOException or InvalidOperationException or System.ComponentModel.Win32Exception or ObjectDisposedException) { }
             lock (_lock)
             {
+                if (_device != null) Log("E2x2 disconnected");
                 _device?.Dispose();
                 _device = null;
             }
@@ -414,6 +419,9 @@ public sealed class Engine : IDisposable
             lock (_meters) _meters[f.Param] = f.Value;
             return;
         }
+        // Anything the device says on its own besides meters and the monitor-mix knob (button presses,
+        // settings it re-announces after a reset) goes to engine.log for problem reports.
+        if (f.Param != new Param(0x35, 0x03)) Log($"device sent {f}");
         // Front-panel controls. The device already applied them, so record without re-sending.
         bool changed = true;
         lock (_lock)

@@ -176,7 +176,7 @@
       {@render toggle(app.status.startWithWindows ?? false, v => setStartWithWindows(v), t('Start with Windows'))}
     </div>
     {#if app.status.controlCenterAutostart}
-      <p class="warnline">{t('TOPPING Control Center also starts with Windows. Both write to the E2x2, so the last one wins — turn it off in Task Manager → Startup apps.')}</p>
+      <p class="warnline">{t('TOPPING Control Center also starts with Windows, and TPConsole waits while it runs — turn it off in Task Manager → Startup apps.')}</p>
     {/if}
     {@render boolRow('hideServiceSessions', false, t('Hide Windows service sessions'),
       t('Windows components (svchost) that open audio, such as the Bluetooth or speech services.'))}

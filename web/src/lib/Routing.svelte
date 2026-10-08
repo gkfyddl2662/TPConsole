@@ -104,8 +104,11 @@
   // Added here like any node; they become Windows devices when applied (the E2x2 restarts once).
   const vr = $derived(app.status.virtualRouting)
   const vReady = $derived(!!(vr?.installed && vr.enabled && vr.loaded))
-  const vdevs = $derived(app.profile!.virtualDevices ?? [])
-  const vroutes = $derived(app.profile!.virtualRoutes ?? [])
+  // Only while virtual routing is switched on: otherwise the zone, its wires and menu entries are hidden
+  // (the devices stay saved in the profile).
+  const vOn = $derived(!!(vr?.installed && vr.enabled))
+  const vdevs = $derived(vOn ? app.profile!.virtualDevices ?? [] : [])
+  const vroutes = $derived(vOn ? app.profile!.virtualRoutes ?? [] : [])
   const vplays = $derived(vdevs.filter(d => d.kind === 'playback'))
   const vrecs = $derived(vdevs.filter(d => d.kind === 'recording'))
   const vName = (d: VirtualDevice) => d.name.trim() || t(d.kind === 'playback' ? 'Virtual playback {n}' : 'Virtual recording {n}', { n: d.id })
@@ -1045,6 +1048,7 @@
 
     </div>
 
+    {#if vOn}
     <!-- Virtual devices live in the driver's mixer, not in the E2x2: their own zone, under the hardware. -->
     <div class="band virt"></div>
     <div class="vzone-l">
@@ -1105,6 +1109,7 @@
           use:hint={() => t(vReady ? 'Add a Windows recording device (loopback) on a virtual channel' : 'Turn on virtual routing in Settings first.')}>+ {t('Recording device')}</button>
       </div>
     </div>
+    {/if}
   </div>
 </div>
 

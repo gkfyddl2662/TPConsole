@@ -14,7 +14,9 @@ namespace TPConsole.App;
 // The message protocol (ops and message types) is defined by web/src/lib/bridge.ts.
 public partial class MainWindow : Window
 {
-    readonly Engine _engine = new();
+    // TOPPING Control Center and TPConsole must not both drive the E2x2: while it runs, the engine lets go.
+    static bool ControlCenterRunning() => System.Diagnostics.Process.GetProcessesByName("ToppingPro").Length > 0;
+    readonly Engine _engine = new(paused: ControlCenterRunning());
     readonly WindowsAudio _audio = new();
     readonly DispatcherTimer _meterTimer = new() { Interval = TimeSpan.FromMilliseconds(50) };
     readonly Tray _tray;
@@ -49,11 +51,12 @@ public partial class MainWindow : Window
         _audio.VirtualDevices = () => _engine.Profile.VirtualDevices.ToList();
         _ = Task.Run(() => { _virtualRouting = SafeVirtualStatus(); Dispatcher.BeginInvoke(SendState); });
         _audio.TopologyChanged += () => Dispatcher.BeginInvoke(SendWindows);
+        _audio.StatsLog = _engine.Log;
         _meterTimer.Tick += (_, _) => SendMeters();
-        // Watch TOPPING Control Center: when it closes, put our setup back (see Engine.Resync).
-        // One process list per tick serves both the Control Center watch and automatic presets.
+        // Watch TOPPING Control Center: while it runs TPConsole leaves the E2x2 alone; when it closes, our
+        // setup goes back (Engine.Resync). One process list per tick also serves automatic presets.
         var ccTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-        _ccRunning = System.Diagnostics.Process.GetProcessesByName("ToppingPro").Length > 0;
+        _ccRunning = ControlCenterRunning();
         ccTimer.Tick += (_, _) =>
         {
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -62,9 +65,10 @@ public partial class MainWindow : Window
             bool running = names.Contains("ToppingPro");
             if (running == _ccRunning) return;
             _ccRunning = running;
+            if (running) { _engine.Log("Control Center started: TPConsole paused"); _engine.Pause(true); }
             SendState();
             // Give it a moment to finish its exit-time write to the device.
-            if (!running) Task.Delay(2000).ContinueWith(_ => _engine.Resync());
+            if (!running) Task.Delay(2000).ContinueWith(_ => { if (!_ccRunning) _engine.Resync(); });
         };
         ccTimer.Start();
         Closing += (_, e) =>
@@ -246,7 +250,7 @@ public partial class MainWindow : Window
                 };
             }
             catch (Exception e) { error = e.Message; }
-            finally { if (restarts) { _audio.Pause(false); _engine.Pause(false); } }
+            finally { if (restarts) { _audio.Pause(false); _engine.Pause(_ccRunning); } }
             try
             {
                 Directory.CreateDirectory(VirtualRouting.BackupDir);
@@ -373,6 +377,13 @@ public partial class MainWindow : Window
                 var asioError = _audio.SetAsioBuffer((uint)msg["size"]!, (bool)msg["safeMode"]!);
                 Result("asioBuffer", asioError);
                 break;
+            case "closeControlCenter":
+                // Killed, not asked to close: it would hide in the tray (and store to the device's flash on exit).
+                foreach (var p in System.Diagnostics.Process.GetProcessesByName("ToppingPro"))
+                    using (p)
+                        try { p.Kill(entireProcessTree: true); }
+                        catch (Exception e) when (e is System.ComponentModel.Win32Exception or InvalidOperationException) { Result("closeControlCenter", e.Message); }
+                break;
             case "resetStats":
                 _audio.ResetStats();
                 break;
@@ -483,7 +494,8 @@ public partial class MainWindow : Window
     {
         if (!_ready) return;
         // Interface size: native WebView zoom keeps every coordinate consistent.
-        var zoom = Math.Clamp(_engine.Profile.Settings.UiScale, 0.6, 2);
+        // "100%" is drawn 10% larger than the page's own CSS size (what used to be 110%).
+        var zoom = BaseZoom * Math.Clamp(_engine.Profile.Settings.UiScale, 0.6, 2);
         if (Math.Abs(Web.ZoomFactor - zoom) > 0.001) Web.ZoomFactor = zoom;
         var msg = new JsonObject
         {
@@ -586,19 +598,21 @@ public partial class MainWindow : Window
 
     // ---- mini mode: a small window with the essentials ----------------------------------------
     Rect? _normalBounds;
+    const double BaseZoom = 1.1;
+
     void SetMini(bool on)
     {
         if (on)
         {
             _normalBounds ??= new Rect(Left, Top, Width, Height);
-            MinWidth = 300; MinHeight = 300;
-            Width = 340; Height = 560;
+            MinWidth = 330; MinHeight = 330;
+            Width = 374; Height = 616;
             Topmost = _engine.Profile.Settings.MiniOnTop;
         }
         else if (_normalBounds is { } b)
         {
             Topmost = false;
-            MinWidth = 980; MinHeight = 640;
+            MinWidth = 1080; MinHeight = 700;
             Left = b.Left; Top = b.Top; Width = b.Width; Height = b.Height;
             _normalBounds = null;
         }
