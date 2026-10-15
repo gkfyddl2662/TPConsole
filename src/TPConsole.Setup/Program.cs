@@ -27,6 +27,9 @@ static class Program
     [STAThread]
     static void Main(string[] args)
     {
+        // The app (or Installed apps) may start us inside the install folder; a working directory there keeps
+        // the folder open and the install/uninstall could not move or delete it.
+        Environment.CurrentDirectory = Path.GetTempPath();
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         var payload = Assembly.GetExecutingAssembly().GetManifestResourceStream("app.zip");
@@ -182,13 +185,13 @@ static class Program
         Registry.LocalMachine.DeleteSubKeyTree(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" + Legacy, false);
     }
 
-    // A just-exited app (or antivirus) can hold files for a moment.
+    // A just-exited app, its WebView2 processes or antivirus can hold files for a few seconds.
     static void Retry(Action move)
     {
         for (int i = 0; ; i++)
         {
             try { move(); return; }
-            catch (Exception e) when (i < 10 && e is IOException or UnauthorizedAccessException) { Thread.Sleep(500); }
+            catch (Exception e) when (i < 40 && e is IOException or UnauthorizedAccessException) { Thread.Sleep(500); }
         }
     }
 

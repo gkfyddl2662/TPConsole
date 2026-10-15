@@ -19,6 +19,9 @@ public partial class App : System.Windows.Application
             return;
         }
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        // Not the install folder (the Start menu shortcut starts there): a working directory holds its folder
+        // open, and WebView2 and the update setup inherit it, so the update could not swap the folder.
+        Environment.CurrentDirectory = System.IO.Path.GetTempPath();
         var window = new MainWindow();
         new Thread(() =>
         {
