@@ -457,6 +457,7 @@
 
   function layout() {
     if (!canvas || !grid) return
+    pannable = canvas.scrollWidth > canvas.clientWidth + 1 || canvas.scrollHeight > canvas.clientHeight + 1
     // Fan wires out around each port, ordered by where the other end sits, so they don't cross.
     const ends = edges.map(e => {
       const own = e.toPort && ports.get(`in:${e.toPort}`) ? point(e.toPort, 'in') : null
@@ -513,8 +514,9 @@
     tick().then(() => { canvas.scrollLeft = px * z1 - mx; canvas.scrollTop = py * z1 - my })
   }
 
-  // Dragging the empty background moves the view.
+  // Dragging the empty background moves the view (grab cursor only when there is somewhere to go).
   let panning = $state(false)
+  let pannable = $state(false)
   function panStart(e: PointerEvent) {
     if (e.button !== 0 && e.button !== 1) return
     if ((e.target as Element).closest('.node, .app, button, input, select, .hit, .zoom')) return
@@ -528,6 +530,14 @@
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
   }
+
+  // While something is dragged the cursor stays the drag's own, whatever is under the pointer.
+  $effect(() => {
+    const kind = panning || reorder ? 'grabbing' : drag ? (hoverTarget ? 'copy' : 'crosshair') : null
+    const html = document.documentElement
+    if (kind) html.dataset.drag = kind
+    else delete html.dataset.drag
+  })
 
   // ---- dragging wires ----------------------------------------------------------------------
   let popover = $state<{ x: number; y: number; row: SourceRow; mix: number } | null>(null)
@@ -545,21 +555,41 @@
       return { x: (ev.clientX - c.left) / s, y: (ev.clientY - c.top) / s }
     }
     drag = { from, kind, ...pos(e) }
+    let last = e
     const move = (ev: PointerEvent) => {
+      last = ev
       if (!drag) return
       drag = { ...drag, ...pos(ev) }
       hoverTarget = dropTarget(ev)
     }
-    const up = (ev: PointerEvent) => {
-      const target = dropTarget(ev)
-      if (drag && target) connect(drag.from, target)
+    // Near an edge of the view, scroll towards it so far-off nodes can be reached.
+    const EDGE = 48
+    let raf = requestAnimationFrame(function edgeScroll() {
+      const r = canvas.getBoundingClientRect()
+      const push = (p: number, lo: number, hi: number) =>
+        p < lo + EDGE ? Math.max(-EDGE, p - lo - EDGE) : p > hi - EDGE ? Math.min(EDGE, p - hi + EDGE) : 0
+      const dx = push(last.clientX, r.left, r.right) / 3, dy = push(last.clientY, r.top, r.bottom) / 3
+      if (dx || dy) { canvas.scrollBy(dx, dy); move(last) }
+      raf = requestAnimationFrame(edgeScroll)
+    })
+    const end = () => {
+      cancelAnimationFrame(raf)
       drag = null
       hoverTarget = null
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
+      window.removeEventListener('keydown', key)
     }
+    const up = (ev: PointerEvent) => {
+      const target = dropTarget(ev)
+      if (drag && target) connect(drag.from, target)
+      end()
+    }
+    // Esc drops the wire without connecting it.
+    const key = (ev: KeyboardEvent) => { if (ev.key === 'Escape') end() }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
+    window.addEventListener('keydown', key)
   }
 
   /** Whether a node accepts the wire being dragged (also decides which hollow rings exist). */
@@ -814,8 +844,9 @@
 
 <div class="wrap">
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="routing" class:dragging={!!drag} class:panning bind:this={canvas} onwheel={wheelZoom} onscroll={closeAll}
-  onpointerdown={panStart} use:hint={() => t('Wheel: zoom · drag the background: move')}>
+<div class="routing" class:dragging={!!drag} class:panning class:pannable bind:this={canvas} onwheel={wheelZoom} onscroll={closeAll}
+  onpointerdown={panStart} ondblclick={e => { if (!(e.target as Element).closest('.node, .app, button, input, select, .hit, .zoom')) fit() }}
+  use:hint={() => t('Wheel: zoom · drag the background: move · double-click: fit')}>
   <div class="grid" bind:this={grid} style:zoom={zoom}>
   <!-- Wire layer sized by CSS to the content, so it never holds the scroll area open. -->
   <svg class="wires" aria-hidden="true">
@@ -827,7 +858,7 @@
           <path class="base" d={paths[e.id]} stroke-width={e.width} />
           <path class="glow" d={paths[e.id]} stroke-width={e.width} style:opacity={a} />
           <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-          <path class="hit" d={paths[e.id]} onclick={ev => openEdge(ev, e)} oncontextmenu={ev => disconnect(ev, e)} use:hint={() => t(e.send || e.output ? 'Click: adjust level · Right-click: disconnect' : 'Right-click: disconnect')} />
+          <path class="hit" class:menu-only={!e.send && !e.output} d={paths[e.id]} onclick={ev => openEdge(ev, e)} oncontextmenu={ev => disconnect(ev, e)} use:hint={() => t(e.send || e.output ? 'Click: adjust level · Right-click: disconnect' : 'Right-click: disconnect')} />
         </g>
       {/if}
     {/each}
@@ -1232,6 +1263,7 @@
   .wire.dashed path { stroke-dasharray: 4 4; }
   .wire.silent .base { opacity: 0.12; }
   .wire .hit { stroke: transparent; stroke-width: 12; pointer-events: stroke; cursor: pointer; }
+  .wire .hit.menu-only { cursor: context-menu; }
   .wire:hover .base { opacity: 0.7; }
   .drag { fill: none; stroke: var(--text-2); stroke-width: 1.5; stroke-dasharray: 3 3; }
 
@@ -1266,7 +1298,12 @@
   .zone.vz { color: var(--virt); }
   .others { grid-column: 1 / 3; grid-row: 3; display: flex; flex-direction: column; gap: 10px; padding-top: 18px; }
   .group-h.other-h { padding-top: 4px; }
+  .routing.pannable { cursor: grab; }
   .routing.panning { cursor: grabbing; }
+  .node, .app { cursor: default; }
+  :global(html[data-drag='grabbing']), :global(html[data-drag='grabbing'] *) { cursor: grabbing !important; }
+  :global(html[data-drag='crosshair']), :global(html[data-drag='crosshair'] *) { cursor: crosshair !important; }
+  :global(html[data-drag='copy']), :global(html[data-drag='copy'] *) { cursor: copy !important; }
   .apps-h { grid-column: 1; }
   .src-h { grid-column: 2; }
   .mix-h { grid-column: 4; }

@@ -299,6 +299,7 @@ const ko: Record<string, string> = {
   'Sources connected to this mix — show / hide their levels': '이 믹스에 연결된 소스 — 레벨 보이기/숨기기',
   '{n} sources': '소스 {n}개',
   'Wheel: zoom · drag the background: move': '휠: 확대/축소 · 배경 끌기: 이동',
+  'Wheel: zoom · drag the background: move · double-click: fit': '휠: 확대/축소 · 배경 끌기: 이동 · 더블클릭: 창에 맞춤',
   'Windows playback': 'Windows 재생',
   'Windows recording': 'Windows 녹음',
   'Inputs (hardware)': '입력 (하드웨어)',
